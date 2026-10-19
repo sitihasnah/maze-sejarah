@@ -1,0 +1,4341 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ARKIB MASA: 1957 × 1963</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Google Fonts: Cinzel & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background-color: #0d1117;
+      color: #f0f6fc;
+    }
+    .title-font {
+      font-family: 'Cinzel', serif;
+    }
+    #game-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: block;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+    .touch-control {
+      touch-action: none;
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden">
+
+  <!-- 3D Canvas -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- HUD Top Bar -->
+  <header id="hud" class="absolute top-0 left-0 right-0 z-20 p-3 sm:p-4 flex items-center justify-between pointer-events-none">
+    <div class="flex items-center gap-2 sm:gap-4 pointer-events-auto bg-slate-900/85 backdrop-blur-md border border-slate-700/80 px-3 sm:px-4 py-2 rounded-xl shadow-xl">
+      <div class="flex flex-col">
+        <span class="text-[10px] sm:text-xs text-amber-400 font-semibold tracking-wider uppercase flex items-center gap-1.5" id="hud-room-badge">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="hud-room-title">Bilik 1: Galeri Dua Detik</span>
+        </span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs sm:text-sm font-bold text-white" id="hud-progress-text">Bukti dipulihkan: 0/6</span>
+          <div class="w-16 sm:w-24 bg-slate-800 h-2 sm:h-2.5 rounded-full overflow-hidden border border-slate-700">
+            <div id="hud-progress-bar" class="h-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-500 w-0"></div>
+          </div>
+        </div>
+      </div>
+      <div class="border-l border-slate-700 pl-2 sm:pl-3 text-right">
+        <span class="text-[10px] text-slate-400 block font-medium">Masa</span>
+        <span id="hud-timer" class="font-mono text-xs sm:text-sm font-bold text-emerald-400">00:00</span>
+      </div>
+    </div>
+
+    <!-- Sepanduk Objektif Misi Semasa -->
+    <div id="hud-objective-container" class="pointer-events-auto hidden md:flex items-center gap-2 bg-slate-950/90 border border-amber-500/50 px-4 py-2 rounded-2xl shadow-xl max-w-md">
+      <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0"></span>
+      <div class="text-xs">
+        <span class="text-slate-400 font-semibold uppercase tracking-wider block text-[10px]">Objektif Semasa</span>
+        <span id="hud-objective-text" class="text-amber-200 font-bold">Bercakap dengan Burung Penjaga berhampiran pintu masuk.</span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <!-- Book of Evidence -->
+      <button id="btn-open-book" class="bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-amber-500/50 text-amber-300 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-lg active:scale-95 transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <span class="hidden sm:inline">Buku Bukti</span>
+        <span id="inventory-badge" class="bg-amber-500 text-slate-950 font-black text-[10px] px-1.5 py-0.5 rounded-full ml-0.5">0</span>
+      </button>
+
+      <!-- Controls Info -->
+      <button id="btn-open-controls" title="Kawalan Permainan" class="bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 p-2 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-lg active:scale-95 transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="hidden sm:inline">Kawalan</span>
+      </button>
+
+      <!-- Audio Mute Toggle -->
+      <button id="btn-toggle-audio" title="Bunyi" class="bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 p-2 rounded-xl text-xs sm:text-sm shadow-lg active:scale-95 transition-all">
+        <svg id="audio-icon-on" class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+        <svg id="audio-icon-off" class="w-4 h-4 text-red-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+      </button>
+
+      <!-- Restart with confirmation -->
+      <button id="btn-open-restart" title="Mula Semula" class="bg-slate-900/85 hover:bg-rose-950/70 border border-slate-700 hover:border-rose-500/50 text-slate-300 hover:text-rose-300 p-2 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-lg active:scale-95 transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        <span class="hidden md:inline">Mula Semula</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Contextual Interaction Prompt -->
+  <div id="interaction-prompt" class="absolute bottom-24 sm:bottom-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none transition-all duration-300 opacity-0 translate-y-4">
+    <div class="bg-slate-900/90 backdrop-blur-md border-2 border-amber-400 text-white px-5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
+      <span class="bg-amber-400 text-slate-950 font-black text-xs px-2.5 py-1 rounded-lg">E</span>
+      <span id="interaction-label" class="text-sm font-bold tracking-wide">Periksa Fail Arkib</span>
+    </div>
+  </div>
+
+  <!-- Mobile Controls -->
+  <div id="mobile-controls" class="absolute inset-0 z-10 pointer-events-none flex justify-between items-end p-4 pb-6 md:hidden">
+    <div id="joystick-zone" class="pointer-events-auto touch-control relative w-32 h-32 bg-slate-900/40 border-2 border-slate-700/60 rounded-full flex items-center justify-center backdrop-blur-sm">
+      <div id="joystick-knob" class="absolute w-12 h-12 bg-amber-400/80 rounded-full shadow-lg border-2 border-white/80 transition-transform duration-75"></div>
+      <span class="text-[10px] text-slate-400 pointer-events-none font-bold">GERAK</span>
+    </div>
+    <button id="btn-mobile-interact" class="pointer-events-auto touch-control w-20 h-20 rounded-full bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 font-black text-xs uppercase shadow-2xl border-4 border-amber-200/60 flex flex-col items-center justify-center active:scale-90 transition-transform">
+      <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+      <span id="mobile-action-text">PERIKSA</span>
+    </button>
+  </div>
+
+  <!-- MODAL: SKRIN MULA -->
+  <div id="modal-start" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md transition-opacity duration-300">
+    <div class="max-w-lg w-full bg-slate-900 border-2 border-amber-500/80 rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden">
+      <div class="inline-block bg-amber-500/10 border border-amber-500/40 text-amber-300 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-widest mb-3">
+        Arkib Sejarah Digital
+      </div>
+      <h1 class="title-font text-2xl sm:text-3xl font-extrabold text-white tracking-wide mb-1">
+        ARKIB MASA: 1957 × 1963
+      </h1>
+      <p class="text-amber-400 text-sm sm:text-base font-medium mb-5">
+        “Pulihkan sejarah. Buka jalan keluar.”
+      </p>
+
+      <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 text-left text-xs sm:text-sm text-slate-300 space-y-2 mb-6">
+        <p class="font-semibold text-slate-200">
+          ⚠️ Amaran Sistem Arkib:
+        </p>
+        <p class="leading-relaxed text-slate-300 italic border-l-2 border-amber-400 pl-3">
+          “Dua peristiwa. Dua konteks. Rekod sudah bercampur. Periksa enam kad bukti dan pulihkan galeri untuk membuka pintu keluar.”
+        </p>
+        <p class="text-slate-400 text-xs pt-1">
+          Bilik Galeri Dua Detik terkunci. Kenal pasti sama ada setiap rekod merujuk kepada <strong>Kemerdekaan Persekutuan Tanah Melayu (1957)</strong> atau <strong>Pembentukan Malaysia (1963)</strong>.
+        </p>
+      </div>
+
+      <button id="btn-start-game" class="w-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black py-3.5 px-6 rounded-2xl text-base tracking-wide shadow-xl shadow-amber-500/20 active:scale-95 transition-all">
+        MULA MISI SEJARAH
+      </button>
+
+      <div class="mt-4 flex items-center justify-center gap-4 text-xs text-slate-400">
+        <span>Desktop: WASD + Tetikus</span>
+        <span>•</span>
+        <span>Telefon: Skrin Sentuh</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TUTORIAL & KAWALAN -->
+  <div id="modal-controls" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="max-w-md w-full bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Panduan Kawalan & Misi
+        </h3>
+        <button id="btn-close-controls" class="text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+      </div>
+
+      <div class="space-y-4 text-xs sm:text-sm text-slate-300">
+        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+          <span class="font-bold text-amber-400 block mb-1">🎮 Kawalan Komputer (Desktop):</span>
+          <ul class="list-disc list-inside space-y-1 text-slate-300">
+            <li><strong>W, A, S, D</strong> atau <strong>Anak Panah</strong>: Bergerak.</li>
+            <li><strong>Klik & Seret Tetikus</strong>: Memutar pandangan kamera.</li>
+            <li><strong>Kekunci E</strong>: Memeriksa fail atau panel pameran.</li>
+          </ul>
+        </div>
+
+        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+          <span class="font-bold text-emerald-400 block mb-1">📱 Kawalan Telefon Pintar:</span>
+          <ul class="list-disc list-inside space-y-1 text-slate-300">
+            <li><strong>Joystick Kiri</strong>: Bergerak ke hadapan/kiri/kanan/undur.</li>
+            <li><strong>Seret Bahagian Kanan Skrin</strong>: Menghala kamera.</li>
+            <li><strong>Butang 'PERIKSA'</strong>: Berinteraksi dengan objek berdekatan.</li>
+          </ul>
+        </div>
+      </div>
+
+      <button id="btn-ack-controls" class="w-full mt-5 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl transition-all">
+        Faham & Teruskan
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: PERIKSA BUKTI (KUTIP) -->
+  <div id="modal-card-inspect" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="max-w-lg w-full bg-slate-900 border-2 border-amber-500 rounded-3xl p-6 sm:p-7 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="bg-amber-500/20 text-amber-400 text-xs font-bold px-2.5 py-1 rounded-lg border border-amber-500/40" id="inspect-card-id">KAD ?</span>
+          <h3 class="text-base sm:text-lg font-bold text-white" id="inspect-card-title">Fail Rekod Sejarah</h3>
+        </div>
+        <button id="btn-close-inspect" class="text-slate-400 hover:text-white p-1 rounded-lg text-lg">✕</button>
+      </div>
+
+      <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-5 mb-5 shadow-inner">
+        <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2">Teks Kandungan Bukti:</p>
+        <p class="text-base sm:text-lg font-medium text-amber-100 leading-relaxed italic" id="inspect-card-text">
+          "..."
+        </p>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="btn-save-evidence" class="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black py-3 px-4 rounded-xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+          Simpan Bukti ke Inventori
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PANEL PAMERAN (KLASIFIKASI BUKTI) -->
+  <div id="modal-panel-view" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="max-w-2xl w-full bg-slate-900 border-2 rounded-3xl p-5 sm:p-7 shadow-2xl max-h-[90vh] flex flex-col overflow-hidden" id="panel-modal-container">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4 shrink-0">
+        <div>
+          <span class="text-xs uppercase tracking-widest font-bold block" id="panel-modal-badge">PANEL PAMERAN</span>
+          <h2 class="title-font text-xl sm:text-2xl font-black text-white" id="panel-modal-title">PANEL 1957</h2>
+          <p class="text-xs text-slate-400 mt-0.5" id="panel-modal-desc">Kemerdekaan Persekutuan Tanah Melayu</p>
+        </div>
+        <button id="btn-close-panel" class="text-slate-400 hover:text-white p-1.5 rounded-xl text-xl">✕</button>
+      </div>
+
+      <div class="mb-4 shrink-0">
+        <p class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Bukti Berjaya Dipulihkan pada Panel Ini:</p>
+        <div id="panel-restored-slots" class="grid grid-cols-1 sm:grid-cols-3 gap-2"></div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto pr-1 mb-4">
+        <p class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-2">Pilih Satu Bukti dari Inventori Anda untuk Diletakkan:</p>
+        <div id="panel-inventory-list" class="space-y-2"></div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-between items-center shrink-0">
+        <span class="text-xs text-slate-400" id="panel-hint-tip">Pilih kad di atas untuk mengelaskannya.</span>
+        <button id="btn-close-panel-alt" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold px-4 py-2 rounded-xl transition-all">
+          Tutup Panel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: MAKLUM BALAS KEPUTUSAN & PETUNJUK BERTINGKAT -->
+  <div id="modal-feedback" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="max-w-md w-full bg-slate-900 border-2 rounded-3xl p-6 shadow-2xl relative" id="feedback-box">
+      <div class="flex items-center gap-3 mb-4">
+        <div id="feedback-icon" class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl font-bold">✓</div>
+        <div>
+          <h3 id="feedback-title" class="text-lg font-bold text-white">Bukti Berjaya Dipulihkan</h3>
+          <span id="feedback-subtitle" class="text-xs text-slate-400">Padanan Sejarah Tepat</span>
+        </div>
+      </div>
+
+      <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 mb-4 text-xs sm:text-sm leading-relaxed" id="feedback-body"></div>
+
+      <!-- Tiered Hints Container -->
+      <div id="feedback-hints-section" class="hidden space-y-2 mb-4">
+        <div class="text-xs font-bold text-amber-400 flex items-center justify-between">
+          <span>Bantuan Berfikir Bertingkat:</span>
+          <span class="text-[10px] text-slate-400 font-normal">Tiada penalti masa</span>
+        </div>
+        
+        <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-3 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-slate-200">🔍 Petunjuk 1: Arahkan Perhatian</span>
+            <button id="btn-show-hint-1" class="text-amber-400 hover:text-amber-300 font-bold text-[11px] bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/30">Buka Petunjuk</button>
+          </div>
+          <p id="hint-1-text" class="hidden mt-2 text-slate-300 italic border-l-2 border-amber-400 pl-2">...</p>
+        </div>
+
+        <div id="hint-2-box" class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-3 text-xs opacity-60">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-slate-200">💡 Petunjuk 2: Perbezaan Konsep</span>
+            <button id="btn-show-hint-2" disabled class="text-slate-400 font-bold text-[11px] bg-slate-800 px-2 py-0.5 rounded border border-slate-700 cursor-not-allowed">Perlu Petunjuk 1 Dulu</button>
+          </div>
+          <p id="hint-2-text" class="hidden mt-2 text-cyan-200 italic border-l-2 border-cyan-400 pl-2">...</p>
+        </div>
+      </div>
+
+      <button id="btn-close-feedback" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl transition-all text-sm">
+        Teruskan Eksplorasi
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: BUKU BUKTI -->
+  <div id="modal-book" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="max-w-2xl w-full bg-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-7 shadow-2xl max-h-[88vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4 shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="p-2 bg-amber-500/20 text-amber-400 rounded-xl">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-white">Buku Arkib Bukti</h3>
+            <p class="text-xs text-slate-400">Ringkasan Dokumen & Petunjuk</p>
+          </div>
+        </div>
+        <button id="btn-close-book" class="text-slate-400 hover:text-white p-1 rounded-lg text-lg">✕</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto space-y-3 pr-1" id="book-card-list"></div>
+
+      <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between shrink-0">
+        <div class="flex gap-2">
+          <button id="btn-book-tab-r1" class="text-xs px-3 py-1.5 rounded-lg font-bold bg-amber-500 text-slate-950 transition-all">Bilik 1 (Bukti)</button>
+          <button id="btn-book-tab-r2" class="text-xs px-3 py-1.5 rounded-lg font-semibold bg-slate-800 text-slate-300 hover:text-white transition-all">Bilik 2 (Petunjuk Peta)</button>
+        </div>
+        <button id="btn-close-book-alt" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl transition-all">
+          Tutup Buku Bukti
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PERALIHAN BILIK 1 -->
+  <div id="modal-room1-complete" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="max-w-md w-full bg-slate-900 border-2 border-emerald-500 rounded-3xl p-6 sm:p-7 shadow-2xl text-center relative">
+      <div class="w-14 h-14 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-emerald-500/40">✓</div>
+      <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">
+        Galeri Dua Detik Selesai
+      </span>
+      <h3 class="text-xl sm:text-2xl font-black text-white mt-3 mb-2">Galeri Dipulihkan!</h3>
+      <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-5">
+        Semua 6 fail bukti telah dikelaskan dengan tepat. Pintu arkib terbuka!
+        <br><strong class="text-amber-400 font-semibold">“Galeri dipulihkan. Teruskan ke Meja Peta Sejarah.”</strong>
+      </p>
+      <button id="btn-ack-room1-door" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-3 px-4 rounded-xl shadow-lg transition-transform active:scale-95 text-sm">
+        Melangkah Masuk ke Bilik 2
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: PERIKSA FAIL PETUNJUK BILIK 2 -->
+  <div id="modal-room2-clue" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="max-w-lg w-full bg-slate-900 border-2 border-cyan-500 rounded-3xl p-6 sm:p-7 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="bg-cyan-500/20 text-cyan-400 text-xs font-bold px-2.5 py-1 rounded-lg border border-cyan-500/40" id="clue-modal-id">PETUNJUK ?</span>
+          <h3 class="text-base sm:text-lg font-bold text-white" id="clue-modal-title">Fail Petunjuk Wilayah</h3>
+        </div>
+        <button id="btn-close-clue" class="text-slate-400 hover:text-white p-1 rounded-lg text-lg">✕</button>
+      </div>
+
+      <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-5 mb-5 shadow-inner">
+        <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2">Petunjuk Rekod Peta:</p>
+        <p class="text-base sm:text-lg font-medium text-cyan-100 leading-relaxed italic" id="clue-modal-text">"..."</p>
+      </div>
+
+      <button id="btn-ack-clue" class="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-black py-3 px-4 rounded-xl shadow-lg active:scale-95 transition-all">
+        Faham & Teruskan
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: MEJA PETA SEJARAH (PANEL A & B) -->
+  <div id="modal-map-table" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="max-w-3xl w-full bg-slate-900 border-2 border-cyan-500/80 rounded-3xl p-5 sm:p-7 shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3 shrink-0">
+        <div>
+          <span class="text-xs uppercase tracking-widest font-bold text-cyan-400 block">BILIK 2: MEJA PETA SEJARAH</span>
+          <h2 class="title-font text-lg sm:text-2xl font-black text-white">Pemulihan Label Wilayah</h2>
+        </div>
+        <button id="btn-close-map" class="text-slate-400 hover:text-white p-1 rounded-lg text-lg">✕</button>
+      </div>
+
+      <div class="flex gap-2 mb-3 shrink-0">
+        <button id="btn-tab-panel-a" class="flex-1 py-2 px-3 rounded-xl font-bold text-xs sm:text-sm border transition-all flex items-center justify-center gap-1.5 bg-blue-600/30 text-blue-300 border-blue-500">
+          <span>Panel A: 1957</span>
+          <span id="badge-tab-a" class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-normal">Belum</span>
+        </button>
+        <button id="btn-tab-panel-b" class="flex-1 py-2 px-3 rounded-xl font-bold text-xs sm:text-sm border transition-all flex items-center justify-center gap-1.5 bg-slate-800/60 text-slate-400 border-slate-700">
+          <span>Panel B: 1963</span>
+          <span id="badge-tab-b" class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-normal">Belum</span>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto pr-1 space-y-3">
+        <div class="bg-slate-950/70 p-3 sm:p-4 rounded-2xl border border-slate-800">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="text-sm sm:text-base font-bold text-white" id="map-panel-title">Panel A: Persekutuan Tanah Melayu — 1957</h4>
+            <span class="text-[11px] font-semibold text-amber-400" id="map-panel-status">Pilih label wilayah</span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed" id="map-panel-question">
+            “Panel ini mewakili Persekutuan Tanah Melayu pada 1957. Pilih label wilayah yang sepadan.”
+          </p>
+        </div>
+
+        <!-- Schematic SVG Diagram -->
+        <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-3 relative flex flex-col items-center">
+          <div class="w-full flex items-center justify-between text-[10px] sm:text-xs text-slate-400 mb-2 border-b border-slate-800/80 pb-1.5">
+            <span class="font-bold text-slate-300">Rajah Wilayah Sejarah Interaktif</span>
+            <span class="text-amber-400/90 italic font-mono">⚠️ Rajah skematik — bukan mengikut skala</span>
+          </div>
+
+          <svg viewBox="0 0 600 240" class="w-full max-h-52 select-none">
+            <rect width="600" height="240" rx="12" fill="#0f172a" />
+            <text x="300" y="115" fill="#334155" font-size="12" font-weight="bold" text-anchor="middle" letter-spacing="3">LAUT CHINA SELATAN</text>
+
+            <g id="svg-zone-ptm" class="transition-all cursor-pointer">
+              <rect x="35" y="30" width="160" height="135" rx="10" fill="#1e293b" stroke="#475569" stroke-width="2" id="svg-rect-ptm" />
+              <text x="115" y="65" fill="#e2e8f0" font-size="12" font-weight="bold" text-anchor="middle">Persekutuan</text>
+              <text x="115" y="82" fill="#e2e8f0" font-size="12" font-weight="bold" text-anchor="middle">Tanah Melayu</text>
+              <text x="115" y="105" fill="#94a3b8" font-size="10" text-anchor="middle">(11 Negeri)</text>
+              <circle cx="115" cy="130" r="10" fill="#334155" id="svg-check-ptm" />
+            </g>
+
+            <g id="svg-zone-sg" class="transition-all cursor-pointer">
+              <rect x="70" y="175" width="90" height="42" rx="8" fill="#1e293b" stroke="#475569" stroke-width="2" id="svg-rect-sg" />
+              <text x="115" y="200" fill="#e2e8f0" font-size="11" font-weight="bold" text-anchor="middle">Singapura</text>
+              <circle cx="145" cy="196" r="6" fill="#334155" id="svg-check-sg" />
+            </g>
+
+            <g id="svg-zone-swk" class="transition-all cursor-pointer">
+              <rect x="330" y="90" width="125" height="115" rx="10" fill="#1e293b" stroke="#475569" stroke-width="2" id="svg-rect-swk" />
+              <text x="392" y="145" fill="#e2e8f0" font-size="13" font-weight="bold" text-anchor="middle">Sarawak</text>
+              <text x="392" y="165" fill="#94a3b8" font-size="10" text-anchor="middle">(Borneo Barat)</text>
+              <circle cx="392" cy="186" r="8" fill="#334155" id="svg-check-swk" />
+            </g>
+
+            <g id="svg-zone-sbh" class="transition-all cursor-pointer">
+              <rect x="465" y="35" width="115" height="115" rx="10" fill="#1e293b" stroke="#475569" stroke-width="2" id="svg-rect-sbh" />
+              <text x="522" y="88" fill="#e2e8f0" font-size="13" font-weight="bold" text-anchor="middle">Sabah</text>
+              <text x="522" y="108" fill="#94a3b8" font-size="10" text-anchor="middle">(Borneo Utara)</text>
+              <circle cx="522" cy="130" r="8" fill="#334155" id="svg-check-sbh" />
+            </g>
+          </svg>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold text-slate-400 mb-2">Tandakan label wilayah bagi panel ini:</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="map-options-container"></div>
+        </div>
+
+        <div id="map-feedback-box" class="hidden p-3 rounded-xl text-xs leading-relaxed border transition-all">
+          <p id="map-feedback-text">...</p>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-between items-center shrink-0">
+        <span class="text-xs text-slate-400 hidden sm:inline">Pemain perlu menekan "Semak Susunan" untuk menilai.</span>
+        <div class="flex gap-2 w-full sm:w-auto justify-end">
+          <button id="btn-close-map-alt" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl transition-all">
+            Keluar
+          </button>
+          <button id="btn-submit-map-panel" class="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm px-5 py-2.5 rounded-xl transition-all shadow-lg active:scale-95 flex items-center gap-1.5">
+            <span>Semak Susunan</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CABARAN PENUTUP BILIK 2 -->
+  <div id="modal-closing-challenge" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+    <div class="max-w-lg w-full bg-slate-900 border-2 border-amber-500 rounded-3xl p-6 sm:p-7 shadow-2xl relative">
+      <div class="text-center mb-4">
+        <span class="text-xs font-bold text-amber-400 uppercase tracking-widest bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30">
+          Cabaran Penutup Arkib
+        </span>
+        <h3 class="text-lg sm:text-xl font-black text-white mt-2">Pengesahan Akhir Integriti Sejarah</h3>
+        <p class="text-xs text-slate-300 mt-1">Kedua-dua panel wilayah telah dipulihkan. Jawab soalan akhir untuk membuka pintu keluar arkib:</p>
+      </div>
+
+      <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-4 shadow-inner">
+        <p class="text-sm sm:text-base font-bold text-amber-200 leading-snug mb-3">
+          “Mengapakah Singapura dimasukkan dalam panel 1963 ini?”
+        </p>
+        <div class="space-y-2" id="closing-challenge-options">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-400/60 cursor-pointer transition-all">
+            <input type="radio" name="closing_choice" value="A" class="mt-1 accent-amber-500">
+            <span class="text-xs sm:text-sm text-slate-200">A. Panel merujuk penglibatan ketika pembentukan Malaysia.</span>
+          </label>
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-400/60 cursor-pointer transition-all">
+            <input type="radio" name="closing_choice" value="B" class="mt-1 accent-amber-500">
+            <span class="text-xs sm:text-sm text-slate-200">B. Panel merujuk keanggotaan Malaysia pada masa kini.</span>
+          </label>
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-400/60 cursor-pointer transition-all">
+            <input type="radio" name="closing_choice" value="C" class="mt-1 accent-amber-500">
+            <span class="text-xs sm:text-sm text-slate-200">C. Panel merujuk wilayah Persekutuan Tanah Melayu pada 1957.</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="closing-challenge-feedback" class="hidden mb-4 p-3 rounded-xl text-xs bg-rose-950/50 border border-rose-500/50 text-rose-200"></div>
+
+      <button id="btn-submit-closing-challenge" class="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black py-3 px-4 rounded-xl shadow-lg active:scale-95 transition-all text-sm">
+        Sahkan Jawapan Penutup
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: SKRIN TAMAT -->
+  <div id="modal-game-over" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/90 backdrop-blur-lg overflow-y-auto">
+    <div class="max-w-xl w-full bg-slate-900 border-2 border-emerald-500/80 rounded-3xl p-6 sm:p-8 text-center shadow-2xl my-6 relative overflow-hidden">
+      <div class="w-16 h-16 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-2xl flex items-center justify-center text-slate-950 font-black text-3xl mx-auto mb-4 shadow-lg shadow-emerald-500/30">
+        ✓
+      </div>
+
+      <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">
+        Misi Arkib Selesai Sepenuhnya
+      </span>
+      <h2 class="title-font text-2xl sm:text-3xl font-black text-white mt-2 mb-1">
+        PINTU KELUAR DIBUKA!
+      </h2>
+      <p class="text-xs sm:text-sm text-slate-300 mb-5">
+        Kedua-dua bilik arkib telah dipulihkan dengan jayanya.
+      </p>
+
+      <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 sm:p-5 text-left text-xs sm:text-sm space-y-3 mb-5">
+        <h4 class="font-bold text-amber-400 uppercase tracking-wider text-xs border-b border-slate-800 pb-2">
+          Rumusan Sejarah Negara:
+        </h4>
+        <div class="space-y-2 text-slate-200">
+          <p class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">1957:</span>
+            <span>Kemerdekaan Persekutuan Tanah Melayu.</span>
+          </p>
+          <p class="flex items-start gap-2">
+            <span class="text-cyan-400 font-bold">1963:</span>
+            <span>Pembentukan Malaysia yang melibatkan Persekutuan Tanah Melayu, Sabah, Sarawak dan Singapura.</span>
+          </p>
+          <p class="text-slate-400 text-xs italic pt-1 border-t border-slate-800/80">
+            “Perhatikan tarikh dan konteks apabila membandingkan peta sejarah.”
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center mb-5">
+        <div class="bg-slate-800/50 border border-slate-700/60 p-2.5 rounded-xl">
+          <span class="text-[10px] text-slate-400 block uppercase">Tempoh</span>
+          <span id="summary-duration" class="text-sm font-bold text-emerald-400 font-mono">00:00</span>
+        </div>
+        <div class="bg-slate-800/50 border border-slate-700/60 p-2.5 rounded-xl">
+          <span class="text-[10px] text-slate-400 block uppercase">Bilik 1 (Cubaan)</span>
+          <span id="summary-r1-attempts" class="text-sm font-bold text-white font-mono">0 kali</span>
+        </div>
+        <div class="bg-slate-800/50 border border-slate-700/60 p-2.5 rounded-xl">
+          <span class="text-[10px] text-slate-400 block uppercase">Bilik 1 (Tepat Awal)</span>
+          <span id="summary-r1-accuracy" class="text-sm font-bold text-amber-400 font-mono">0/6</span>
+        </div>
+        <div class="bg-slate-800/50 border border-slate-700/60 p-2.5 rounded-xl">
+          <span class="text-[10px] text-slate-400 block uppercase">Bilik 2 (Cubaan Peta)</span>
+          <span id="summary-r2-attempts" class="text-sm font-bold text-cyan-400 font-mono">0 kali</span>
+        </div>
+      </div>
+
+      <div class="bg-slate-950/70 border border-cyan-500/30 rounded-2xl p-4 text-left mb-6">
+        <label for="reflection-input" class="block text-xs font-bold text-cyan-300 mb-1">
+          Soalan Refleksi Pelajar:
+        </label>
+        <p class="text-xs text-slate-300 mb-2 font-medium">
+          “Bagaimanakah kamu menerangkan perbezaan kedua-dua peristiwa ini kepada seorang rakan?”
+        </p>
+        <textarea id="reflection-input" rows="2" placeholder="Tuliskan idea ringkas kamu di sini..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors resize-none"></textarea>
+      </div>
+
+      <button id="btn-replay" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-3 px-6 rounded-2xl text-sm sm:text-base tracking-wide shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">
+        MAIN SEMULA PERMAINAN
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: PENGESAHAN MULA SEMULA -->
+  <div id="modal-confirm-restart" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="max-w-sm w-full bg-slate-900 border-2 border-rose-500/70 rounded-3xl p-6 shadow-2xl text-center">
+      <div class="w-12 h-12 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3 border border-rose-500/40">
+        ⚠️
+      </div>
+      <h3 class="text-lg font-bold text-white mb-2">Mula Semula Arkib?</h3>
+      <p class="text-xs text-slate-300 mb-5 leading-relaxed">
+        Adakah anda pasti mahu memulakan semula? Semua bukti dan kemajuan bilik akan ditetapkan semula.
+      </p>
+      <div class="flex gap-2.5">
+        <button id="btn-cancel-restart" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 px-4 rounded-xl text-xs transition-all">
+          Batal
+        </button>
+        <button id="btn-do-restart" class="flex-1 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-lg active:scale-95">
+          Ya, Mula Semula
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BURUNG PENJAGA (DIALOG INTERAKTIF) -->
+  <div id="modal-bird-dialog" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="max-w-md w-full bg-slate-900 border-2 border-cyan-400/80 rounded-3xl p-6 shadow-2xl relative">
+      <div class="flex items-center gap-3 pb-3 border-b border-slate-800 mb-4">
+        <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-2xl">
+          🐦
+        </div>
+        <div>
+          <span class="text-[10px] uppercase font-bold text-cyan-400 tracking-wider block">Pemandu Arkib Digital</span>
+          <h3 class="text-base sm:text-lg font-bold text-white">Bayu (Burung Penjaga)</h3>
+        </div>
+        <button id="btn-close-bird" class="text-slate-400 hover:text-white p-1 rounded-lg text-lg ml-auto">✕</button>
+      </div>
+
+      <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 mb-4 text-xs sm:text-sm text-slate-200 leading-relaxed italic border-l-4 border-cyan-400" id="bird-dialog-text">
+        “Chirp! Selamat datang ke Galeri Dua Detik. Saya memerhatikan seluruh arkib ini. Apa yang kamu ingin ketahui?”
+      </div>
+
+      <div class="space-y-2 mb-4">
+        <button id="btn-bird-opt-mission" class="w-full text-left bg-slate-800/80 hover:bg-cyan-950/40 border border-slate-700 hover:border-cyan-400/50 p-2.5 rounded-xl text-xs text-slate-200 font-semibold transition-all flex items-center justify-between">
+          <span>💬 “Apa misi saya sekarang?”</span>
+          <span class="text-cyan-400 text-xs">➔</span>
+        </button>
+        <button id="btn-bird-opt-hint" class="w-full text-left bg-slate-800/80 hover:bg-cyan-950/40 border border-slate-700 hover:border-cyan-400/50 p-2.5 rounded-xl text-xs text-slate-200 font-semibold transition-all flex items-center justify-between">
+          <span>💡 “Beri saya petunjuk untuk puzzle ini.”</span>
+          <span class="text-amber-400 text-xs">➔</span>
+        </button>
+        <button id="btn-bird-opt-status" class="w-full text-left bg-slate-800/80 hover:bg-cyan-950/40 border border-slate-700 hover:border-cyan-400/50 p-2.5 rounded-xl text-xs text-slate-200 font-semibold transition-all flex items-center justify-between">
+          <span>📜 “Apa yang sudah saya selesaikan?”</span>
+          <span class="text-emerald-400 text-xs">➔</span>
+        </button>
+      </div>
+
+      <button id="btn-ack-bird" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition-all">
+        Teruskan Meneroka
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: MINI PUZZLE PETI BERKUNCI -->
+  <div id="modal-chest-puzzle" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="max-w-lg w-full bg-slate-900 border-2 border-amber-500 rounded-3xl p-6 sm:p-7 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+        <div>
+          <span class="text-[10px] uppercase font-bold text-amber-400 tracking-wider block">Kunci Mekanikal Arkib</span>
+          <h3 class="text-base sm:text-lg font-bold text-white">Peti Dokumen Asas 1957</h3>
+        </div>
+        <button id="btn-close-chest-puzzle" class="text-slate-400 hover:text-white p-1 rounded-lg text-lg">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-300 mb-4 leading-relaxed">
+        Selaraskan tiga dial di bawah berdasarkan <strong>asas kemerdekaan negara</strong> untuk melepaskan kunci selak peti:
+      </p>
+
+      <!-- 3 Dials Configuration -->
+      <div class="space-y-3 mb-5">
+        <!-- Dial 1: Peristiwa -->
+        <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-2xl">
+          <span class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Dial 1: Peristiwa Utama</span>
+          <div class="flex items-center justify-between gap-2">
+            <button id="btn-dial-prev-1" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 font-black flex items-center justify-center">◀</button>
+            <div id="dial-val-1" class="flex-1 text-center font-bold text-xs sm:text-sm text-amber-200 py-1.5 px-2 bg-slate-900 rounded-xl border border-slate-700">
+              ...
+            </div>
+            <button id="btn-dial-next-1" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 font-black flex items-center justify-center">▶</button>
+          </div>
+        </div>
+
+        <!-- Dial 2: Tarikh -->
+        <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-2xl">
+          <span class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Dial 2: Tarikh Bersejarah</span>
+          <div class="flex items-center justify-between gap-2">
+            <button id="btn-dial-prev-2" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 font-black flex items-center justify-center">◀</button>
+            <div id="dial-val-2" class="flex-1 text-center font-bold text-xs sm:text-sm text-cyan-200 py-1.5 px-2 bg-slate-900 rounded-xl border border-slate-700">
+              ...
+            </div>
+            <button id="btn-dial-next-2" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 font-black flex items-center justify-center">▶</button>
+          </div>
+        </div>
+
+        <!-- Dial 3: Konteks Wilayah -->
+        <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-2xl">
+          <span class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Dial 3: Konteks Wilayah Terlibat</span>
+          <div class="flex items-center justify-between gap-2">
+            <button id="btn-dial-prev-3" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 font-black flex items-center justify-center">◀</button>
+            <div id="dial-val-3" class="flex-1 text-center font-bold text-xs sm:text-sm text-emerald-200 py-1.5 px-2 bg-slate-900 rounded-xl border border-slate-700">
+              ...
+            </div>
+            <button id="btn-dial-next-3" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 font-black flex items-center justify-center">▶</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="chest-puzzle-feedback" class="hidden p-3 rounded-xl text-xs mb-4 leading-relaxed border"></div>
+
+      <button id="btn-check-chest-puzzle" class="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black py-3 px-4 rounded-xl shadow-lg active:scale-95 transition-all text-sm flex items-center justify-center gap-2">
+        <span>Semak Kunci Peti</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: KANDUNGAN PETI TERBUKA -->
+  <div id="modal-chest-loot" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="max-w-md w-full bg-slate-900 border-2 border-emerald-500 rounded-3xl p-6 sm:p-7 shadow-2xl text-center relative">
+      <button id="btn-close-chest-loot" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg text-lg">✕</button>
+      <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 border border-emerald-500/40">
+        📦
+      </div>
+      <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">
+        Peti Arkib Terbuka
+      </span>
+      <h3 class="text-lg sm:text-xl font-black text-white mt-2 mb-2">Kepingan Arkib Bergambar Dijumpai!</h3>
+      <p class="text-xs text-slate-300 leading-relaxed mb-5">
+        Di dalam peti ini terdapat <strong>4 Kepingan Panel Sejarah</strong> yang mengandungi ilustrasi kronologi dari Kemerdekaan 1957 hingga Pembentukan Malaysia 1963.
+      </p>
+
+      <button id="btn-collect-chest-loot" class="w-full bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black py-3 px-4 rounded-xl shadow-lg active:scale-95 transition-all text-sm flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        Ambil Kepingan ke Inventori
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: PAPAN SUSUN GAMBAR MEZANIN ATAS -->
+  <div id="modal-upper-board" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-slate-950/90 backdrop-blur-md">
+    <div class="max-w-3xl w-full bg-slate-900 border-2 border-cyan-500 rounded-3xl p-5 sm:p-7 shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3 shrink-0">
+        <div>
+          <span class="text-xs uppercase tracking-widest font-bold text-cyan-400 block">TINGKAT ATAS: PAPAN PAMERAN</span>
+          <h2 class="title-font text-lg sm:text-2xl font-black text-white">Susun Panel Visual Kronologi</h2>
+          <p class="text-xs text-slate-400">Susun 4 peristiwa penting daripada Kemerdekaan 1957 hingga Pembentukan Malaysia 1963 mengikut urutan yang betul.</p>
+        </div>
+        <button id="btn-close-upper-board" class="text-slate-400 hover:text-white p-1 rounded-lg text-lg">✕</button>
+      </div>
+
+      <div class="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 mb-3 shrink-0 flex items-center justify-between">
+        <span class="text-xs text-slate-300">💡 <strong>Cara:</strong> Klik butang ◀ atau ▶ pada setiap kad untuk menukar kedudukan susunannya.</span>
+        <span id="upper-board-status" class="text-xs font-bold text-amber-400">Belum Disusun</span>
+      </div>
+
+      <!-- Picture Cards List -->
+      <div class="flex-1 overflow-y-auto pr-1 space-y-2.5 mb-3" id="timeline-cards-container">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div id="upper-board-feedback" class="hidden p-3 rounded-xl text-xs mb-3 border shrink-0"></div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-between items-center shrink-0">
+        <button id="btn-close-upper-board-alt" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl transition-all">
+          Tutup Papan
+        </button>
+        <button id="btn-submit-upper-board" class="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-black text-xs sm:text-sm px-5 py-2.5 rounded-xl transition-all shadow-lg active:scale-95 flex items-center gap-1.5">
+          <span>Semak Susunan Garis Masa</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const INITIAL_EVIDENCE_DATA = [
+      {
+        id: "A",
+        title: "Dokumen Rekod A",
+        text: "Pengisytiharan kemerdekaan Persekutuan Tanah Melayu.",
+        category: "1957",
+        hints: [
+          "Fokus pada nama entiti politik: 'Persekutuan Tanah Melayu' dan perkataan 'kemerdekaan'.",
+          "Kemerdekaan Tanah Melayu dicapai sebelum penyertaan wilayah Sabah dan Sarawak."
+        ],
+        explanation: "Pengisytiharan kemerdekaan pada 1957 menamatkan naungan penjajah ke atas Persekutuan Tanah Melayu sebagai sebuah negara berdaulat."
+      },
+      {
+        id: "B",
+        title: "Dokumen Rekod B",
+        text: "Tarikh peristiwa ini ialah 31 Ogos 1957.",
+        category: "1957",
+        hints: [
+          "Perhatikan angka tahun 1957 dan tarikh 31 Ogos.",
+          "31 Ogos 1957 diraikan sebagai Hari Kebangsaan/Kemerdekaan, berbeza dengan Hari Malaysia pada 16 September."
+        ],
+        explanation: "31 Ogos 1957 merupakan tarikh bersejarah Tunku Abdul Rahman melaungkan 'Merdeka' di Stadium Merdeka, Kuala Lumpur."
+      },
+      {
+        id: "C",
+        title: "Dokumen Rekod C",
+        text: "Sebelas negeri di Semenanjung menjadi konteks wilayah bagi peristiwa ini.",
+        category: "1957",
+        hints: [
+          "Kira bilangan negeri: 11 negeri Semenanjung (9 Negeri Melayu + Melaka + Pulau Pinang).",
+          "Wilayah pada masa ini belum merangkumi Sabah, Sarawak atau Singapura."
+        ],
+        explanation: "Persekutuan Tanah Melayu 1957 hanya merangkumi 11 buah negeri di Semenanjung Tanah Melayu."
+      },
+      {
+        id: "D",
+        title: "Dokumen Rekod D",
+        text: "Pembentukan Malaysia.",
+        category: "1963",
+        hints: [
+          "Perhatikan nama persekutuan baharu yang diwujudkan: 'Malaysia'.",
+          "Ia merupakan pembentukan entiti persekutuan yang lebih luas merentasi Laut China Selatan."
+        ],
+        explanation: "Pembentukan Malaysia adalah hasil persetujuan bersama melahirkan persekutuan baharu dinamakan Malaysia pada 1963."
+      },
+      {
+        id: "E",
+        title: "Dokumen Rekod E",
+        text: "Tarikh peristiwa ini ialah 16 September 1963.",
+        category: "1963",
+        hints: [
+          "Perhatikan angka tahun 1963 dan bulan September.",
+          "16 September disambut setiap tahun di seluruh negara sebagai Hari Malaysia."
+        ],
+        explanation: "16 September 1963 ialah tarikh rasmi pemasyhuran dan kelahiran persekutuan Malaysia."
+      },
+      {
+        id: "F",
+        title: "Dokumen Rekod F",
+        text: "Persekutuan Tanah Melayu, Sabah, Sarawak dan Singapura terlibat dalam pembentukan ini.",
+        category: "1963",
+        hints: [
+          "Lihat gabungan wilayah yang luas melibatkan wilayah Borneo (Sabah & Sarawak) dan Singapura.",
+          "Penyertaan entiti-entiti ini menghasilkan persekutuan baharu pada tahun 1963."
+        ],
+        explanation: "Malaysia dibentuk melalui gabungan Persekutuan Tanah Melayu, Sabah, Sarawak dan Singapura (sebelum Singapura berpisah pada 1965)."
+      }
+    ];
+
+    const ROOM2_CLUES_DATA = [
+      {
+        id: "1",
+        title: "Fail Petunjuk 1",
+        text: "Pada 1957, peristiwa yang dirujuk ialah kemerdekaan Persekutuan Tanah Melayu.",
+        collected: false
+      },
+      {
+        id: "2",
+        title: "Fail Petunjuk 2",
+        text: "Persekutuan Tanah Melayu terdiri daripada sebelas negeri di Semenanjung.",
+        collected: false
+      },
+      {
+        id: "3",
+        title: "Fail Petunjuk 3",
+        text: "Pembentukan Malaysia pada 1963 melibatkan Persekutuan Tanah Melayu, Sabah, Sarawak dan Singapura.",
+        collected: false
+      },
+      {
+        id: "4",
+        title: "Fail Petunjuk 4",
+        text: "Panel 1963 menunjukkan keadaan ketika pembentukan Malaysia, bukan keanggotaan Malaysia pada hari ini.",
+        collected: false
+      }
+    ];
+
+    const ROOM2_PANELS_DATA = {
+      A: {
+        id: "A",
+        title: "Persekutuan Tanah Melayu — 1957",
+        question: "Panel ini mewakili Persekutuan Tanah Melayu pada 1957. Pilih label wilayah yang sepadan.",
+        options: [
+          "Persekutuan Tanah Melayu (11 negeri di Semenanjung)",
+          "Sabah",
+          "Sarawak",
+          "Singapura"
+        ],
+        correct: ["Persekutuan Tanah Melayu (11 negeri di Semenanjung)"],
+        completed: false,
+        explanation: "Tepat sekali. Pada 1957, kemerdekaan dicapai oleh 11 negeri di Semenanjung Tanah Melayu. Wilayah Borneo dan Singapura belum menganggotai persekutuan ini."
+      },
+      B: {
+        id: "B",
+        title: "Malaysia ketika pembentukan — 16 September 1963",
+        question: "Wilayah manakah yang terlibat dalam pembentukan Malaysia pada 16 September 1963?",
+        options: [
+          "Persekutuan Tanah Melayu",
+          "Sabah",
+          "Sarawak",
+          "Singapura"
+        ],
+        correct: [
+          "Persekutuan Tanah Melayu",
+          "Sabah",
+          "Sarawak",
+          "Singapura"
+        ],
+        completed: false,
+        explanation: "Tepat sekali. Pembentukan Malaysia pada 16 September 1963 merupakan gabungan Persekutuan Tanah Melayu, Sabah, Sarawak dan Singapura."
+      }
+    };
+
+    const ROOM2_CLOSING_DATA = {
+      correctChoice: "A",
+      explanation: "Tepat sekali! Panel 1963 merujuk penglibatan wilayah ketika pembentukan Malaysia pada 16 September 1963 (sebelum Singapura berpisah pada Ogos 1965)."
+    };
+
+    const CHEST_DIAL_OPTIONS = {
+      dial1: [
+        "Kemerdekaan Persekutuan Tanah Melayu",
+        "Pembentukan Persekutuan Malaysia",
+        "Perjanjian Persekutuan Pangkor"
+      ],
+      dial2: [
+        "31 Ogos 1957",
+        "16 September 1963",
+        "20 Februari 1956"
+      ],
+      dial3: [
+        "11 Negeri di Semenanjung",
+        "Tanah Melayu, Sabah, Sarawak & Singapura",
+        "Seluruh Kepulauan Borneo"
+      ]
+    };
+    const CHEST_SOLUTION = { dial1: 0, dial2: 0, dial3: 0 };
+
+    const TIMELINE_CARDS_DATA = [
+      {
+        id: "T1",
+        title: "Kemerdekaan Tanah Melayu",
+        yearBadge: "1957",
+        icon: "📜",
+        desc: "Pengisytiharan kemerdekaan Persekutuan Tanah Melayu oleh Tunku Abdul Rahman di Stadium Merdeka.",
+        correctOrder: 0
+      },
+      {
+        id: "T2",
+        title: "Kedaulatan 11 Negeri Semenanjung",
+        yearBadge: "1957",
+        icon: "🏛️",
+        desc: "Pemerintahan berdaulat bermula bagi sebelas negeri di Semenanjung menamatkan penjajahan British.",
+        correctOrder: 1
+      },
+      {
+        id: "T3",
+        title: "Gagasan & Perjanjian Malaysia",
+        yearBadge: "1963",
+        icon: "🗺️",
+        desc: "Persetujuan bersama antara Persekutuan Tanah Melayu, Sabah, Sarawak dan Singapura untuk bersatu.",
+        correctOrder: 2
+      },
+      {
+        id: "T4",
+        title: "Pemasyhuran Malaysia",
+        yearBadge: "1963",
+        icon: "🤝",
+        desc: "Kelahiran rasmi persekutuan baharu yang dinamakan Malaysia pada 16 September 1963.",
+        correctOrder: 3
+      }
+    ];
+
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playTone(freq, type = 'sine', duration = 0.15, gainVal = 0.1) {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      }
+      pickup() {
+        if (!this.enabled) return;
+        this.init();
+        this.playTone(523.25, 'triangle', 0.1, 0.15);
+        setTimeout(() => this.playTone(659.25, 'triangle', 0.15, 0.15), 80);
+      }
+      success() {
+        if (!this.enabled) return;
+        this.init();
+        this.playTone(523.25, 'sine', 0.12, 0.2);
+        setTimeout(() => this.playTone(659.25, 'sine', 0.12, 0.2), 100);
+        setTimeout(() => this.playTone(783.99, 'sine', 0.25, 0.2), 200);
+        setTimeout(() => this.playTone(1046.50, 'sine', 0.4, 0.2), 300);
+      }
+      error() {
+        if (!this.enabled) return;
+        this.init();
+        this.playTone(220, 'sawtooth', 0.15, 0.15);
+        setTimeout(() => this.playTone(196, 'sawtooth', 0.25, 0.15), 120);
+      }
+      doorRumble() {
+        if (!this.enabled) return;
+        this.init();
+        this.playTone(110, 'triangle', 1.2, 0.3);
+        this.playTone(82.4, 'sawtooth', 1.5, 0.2);
+      }
+      step() {
+        if (!this.enabled || Math.random() > 0.4) return;
+        this.init();
+        this.playTone(180 + Math.random() * 40, 'triangle', 0.04, 0.03);
+      }
+    }
+    const sfx = new SoundFX();
+
+    const gameState = {
+      started: false,
+      completed: false,
+      startTime: null,
+      endTime: null,
+      timerInterval: null,
+      paused: true,
+      currentRoom: 1,
+      room1DoorOpen: false,
+      room2DoorOpen: false,
+      room2IntroShown: false,
+      questStep: 0, // 0: Talk bird, 1: Open chest, 2: Collect loot, 3: Climb upper board, 4: Board solved, 5: Exit
+      hasTalkedToBird: false,
+      chestUnlocked: false,
+      chestLootCollected: false,
+      chestDials: { dial1: 1, dial2: 1, dial3: 1 },
+      upperBoardSolved: false,
+      timelineOrder: ["T3", "T1", "T4", "T2"],
+      cards: [],
+      placedCards: {},
+      clues: [],
+      panelSelections: { A: [], B: [] },
+      room2Attempts: 0,
+      room2FirstAttempts: { A: undefined, B: undefined, closing: undefined },
+      activeMapTab: 'A',
+      closingChallengeCompleted: false,
+      firstAttempts: {},
+      attemptCounts: 0,
+      hintsUsed: 0,
+      activeInteractive: null,
+      activeCardForInspect: null,
+      activeClueForInspect: null,
+      activePanelYear: null,
+      activeFailedCard: null,
+      activeBookTab: 'r1',
+      hintLevel: 0
+    };
+
+    const input = {
+      forward: 0,
+      strafe: 0,
+      isMouseDown: false,
+      mouseX: 0,
+      mouseY: 0,
+      touchDragActive: false,
+      touchId: null,
+      lastTouchX: 0,
+      lastTouchY: 0
+    };
+
+    function setGamePaused(paused) {
+      gameState.paused = paused;
+      if (paused) {
+        if (typeof input !== 'undefined') {
+          input.forward = 0;
+          input.strafe = 0;
+          input.isMouseDown = false;
+          input.touchId = null;
+        }
+        const joystickKnob = document.getElementById('joystick-knob');
+        if (joystickKnob) {
+          joystickKnob.style.transform = 'translate(0px, 0px)';
+        }
+      }
+    }
+    window.setGamePaused = setGamePaused;
+
+    function countRestoredCards() {
+      if (!gameState.cards) return 0;
+      return gameState.cards.filter(c => c.status === 'placed').length;
+    }
+    window.countRestoredCards = countRestoredCards;
+
+    function safeAddListener(id, event, handler) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener(event, handler);
+        return true;
+      }
+      return false;
+    }
+
+    function createFloralHijabTexture() {
+      const size = 256;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Latar belakang putih gading tudung
+      ctx.fillStyle = '#f4f7fc';
+      ctx.fillRect(0, 0, size, size);
+
+      // Pembantu melukis kelopak bunga batik biru
+      function drawFlower(cx, cy, radius, petals, color, centerColor) {
+        ctx.fillStyle = color;
+        for (let i = 0; i < petals; i++) {
+          const angle = (i * 2 * Math.PI) / petals;
+          const px = cx + Math.cos(angle) * (radius * 0.58);
+          const py = cy + Math.sin(angle) * (radius * 0.58);
+          ctx.beginPath();
+          ctx.ellipse(px, py, radius * 0.45, radius * 0.28, angle, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+        // Pusat bunga
+        ctx.fillStyle = centerColor;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.22, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+
+      // Pembantu melukis daun / kuntum kecil
+      function drawLeaf(lx, ly, length, angle) {
+        ctx.fillStyle = '#223c72';
+        ctx.beginPath();
+        ctx.ellipse(lx, ly, length, length * 0.38, angle, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+
+      const flowerColor1 = '#1e3872';
+      const flowerColor2 = '#284687';
+      const centerColor = '#102046';
+
+      // Corak bunga bertabur mengikut grid teratur dan rawak
+      const gridPositions = [
+        { x: 35, y: 35, r: 24, p: 6 },
+        { x: 128, y: 45, r: 28, p: 5 },
+        { x: 220, y: 35, r: 24, p: 6 },
+        { x: 75, y: 128, r: 26, p: 5 },
+        { x: 180, y: 120, r: 25, p: 6 },
+        { x: 35, y: 220, r: 25, p: 6 },
+        { x: 130, y: 215, r: 28, p: 5 },
+        { x: 225, y: 220, r: 24, p: 6 }
+      ];
+
+      gridPositions.forEach((pos, idx) => {
+        drawFlower(pos.x, pos.y, pos.r, pos.p, idx % 2 === 0 ? flowerColor1 : flowerColor2, centerColor);
+        drawLeaf(pos.x + pos.r * 0.8, pos.y - pos.r * 0.7, 9, Math.PI / 4);
+        drawLeaf(pos.x - pos.r * 0.8, pos.y + pos.r * 0.7, 8, -Math.PI / 3);
+      });
+
+      // Bunga-bunga kecil pengisi ruang
+      const smallFlowers = [
+        { x: 80, y: 65 }, { x: 180, y: 65 }, { x: 30, y: 128 },
+        { x: 225, y: 130 }, { x: 80, y: 180 }, { x: 175, y: 175 }
+      ];
+      smallFlowers.forEach(sf => {
+        drawFlower(sf.x, sf.y, 13, 5, '#33549a', '#102046');
+      });
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      return texture;
+    }
+
+    function createAvatarFaceTexture() {
+      const size = 512;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Tona kulit muka
+      ctx.fillStyle = '#ffdfca';
+      ctx.fillRect(0, 0, size, size);
+
+      // Anak tudung (inner hijab) biru gelap di bahagian atas dahi
+      ctx.fillStyle = '#17274b';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(size, 0);
+      ctx.lineTo(size, 110);
+      ctx.quadraticCurveTo(size / 2, 135, 0, 110);
+      ctx.closePath();
+      ctx.fill();
+
+      // Pipi merah jambu (blush lembut)
+      ctx.fillStyle = 'rgba(255, 110, 120, 0.35)';
+      ctx.beginPath();
+      ctx.arc(120, 340, 48, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(392, 340, 48, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // Melukis sepasang mata anime coklat besar
+      function drawEye(cx, cy) {
+        // Bahagian putih mata
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 54, 62, 0, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Iris coklat hangat
+        const irisGrad = ctx.createRadialGradient(cx, cy - 8, 10, cx, cy, 48);
+        irisGrad.addColorStop(0, '#9e5623');
+        irisGrad.addColorStop(0.5, '#6a3411');
+        irisGrad.addColorStop(1, '#2c1406');
+        ctx.fillStyle = irisGrad;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 44, 52, 0, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Pupil gelap
+        ctx.fillStyle = '#150a04';
+        ctx.beginPath();
+        ctx.arc(cx, cy + 4, 22, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Pantulan cahaya mata (sparkle highlights)
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(cx - 15, cy - 16, 14, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + 14, cy + 14, 7, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Garis kelopak mata atas
+        ctx.strokeStyle = '#281408';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(cx, cy - 2, 54, Math.PI * 1.15, Math.PI * 1.85);
+        ctx.stroke();
+      }
+
+      drawEye(165, 255);
+      drawEye(347, 255);
+
+      // Kening melengkung lembut
+      ctx.strokeStyle = '#4e2814';
+      ctx.lineWidth = 7;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(165, 175, 45, Math.PI * 1.25, Math.PI * 1.75);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(347, 175, 45, Math.PI * 1.25, Math.PI * 1.75);
+      ctx.stroke();
+
+      // Cermin mata bulat bergaya bingkai coklat
+      ctx.strokeStyle = '#381c0d';
+      ctx.lineWidth = 14;
+      // Bingkai kiri
+      ctx.beginPath();
+      ctx.roundRect(95, 185, 140, 140, 48);
+      ctx.stroke();
+      // Bingkai kanan
+      ctx.beginPath();
+      ctx.roundRect(277, 185, 140, 140, 48);
+      ctx.stroke();
+      // Jambatan cermin mata tengah
+      ctx.beginPath();
+      ctx.moveTo(235, 245);
+      ctx.lineTo(277, 245);
+      ctx.stroke();
+
+      // Kilauan kaca cermin mata lembut
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+      ctx.beginPath();
+      ctx.roundRect(100, 190, 130, 130, 45);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.roundRect(282, 190, 130, 130, 45);
+      ctx.fill();
+
+      // Mulut tersenyum ceria dengan gigi putih & lidah
+      ctx.fillStyle = '#8f2022';
+      ctx.beginPath();
+      ctx.arc(256, 360, 40, 0, Math.PI);
+      ctx.fill();
+      // Garis gigi atas putih
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(230, 360, 52, 12, 4);
+      ctx.fill();
+      // Lidah merah jambu
+      ctx.fillStyle = '#e26b7b';
+      ctx.beginPath();
+      ctx.arc(256, 392, 22, Math.PI, 2 * Math.PI);
+      ctx.fill();
+
+      const texture = new THREE.CanvasTexture(canvas);
+      return texture;
+    }
+
+    function createProceduralTexture(type) {
+      const size = 64;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      if (type === 'stone') {
+        ctx.fillStyle = '#4a5568';
+        ctx.fillRect(0, 0, size, size);
+        ctx.strokeStyle = '#2d3748';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, size, size / 2);
+        ctx.strokeRect(0, size / 2, size, size / 2);
+        for (let i = 0; i < 180; i++) {
+          ctx.fillStyle = Math.random() > 0.5 ? '#718096' : '#1a202c';
+          ctx.fillRect(Math.random() * size, Math.random() * size, 2, 2);
+        }
+      } else if (type === 'floor') {
+        ctx.fillStyle = '#2b303c';
+        ctx.fillRect(0, 0, size, size);
+        ctx.strokeStyle = '#181b22';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(2, 2, size - 4, size - 4);
+        for (let i = 0; i < 90; i++) {
+          ctx.fillStyle = Math.random() > 0.5 ? '#373e4d' : '#20242d';
+          ctx.fillRect(Math.random() * size, Math.random() * size, 3, 3);
+        }
+      } else if (type === 'wood') {
+        ctx.fillStyle = '#8b5a2b';
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = '#5c3818';
+        for (let y = 0; y < size; y += 16) {
+          ctx.fillRect(0, y, size, 2);
+        }
+        for (let i = 0; i < 120; i++) {
+          ctx.fillStyle = Math.random() > 0.5 ? '#a06a35' : '#4a2c11';
+          ctx.fillRect(Math.random() * size, Math.random() * size, 4, 1);
+        }
+      } else if (type === 'bookshelf') {
+        ctx.fillStyle = '#5c3818';
+        ctx.fillRect(0, 0, size, size);
+        const bookColors = ['#e53e3e', '#3182ce', '#38a169', '#d69e2e', '#805ad5', '#e2e8f0'];
+        for (let row = 4; row < size; row += 22) {
+          ctx.fillStyle = '#3a200a';
+          ctx.fillRect(4, row, size - 8, 16);
+          let bx = 6;
+          while (bx < size - 8) {
+            const bw = 4 + Math.random() * 5;
+            ctx.fillStyle = bookColors[Math.floor(Math.random() * bookColors.length)];
+            ctx.fillRect(bx, row + 2, bw, 13);
+            bx += bw + 1;
+          }
+        }
+      } else if (type === 'card') {
+        ctx.fillStyle = '#fef3c7';
+        ctx.fillRect(0, 0, size, size);
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(2, 2, size - 4, size - 4);
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(8, 10, size - 16, 3);
+        ctx.fillRect(8, 18, size - 20, 2);
+        ctx.fillRect(8, 24, size - 16, 2);
+      } else if (type === 'iron') {
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(0, 0, size, size);
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(0, 0, size, size);
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(size, size);
+        ctx.moveTo(size, 0); ctx.lineTo(0, size);
+        ctx.stroke();
+      }
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.magFilter = THREE.NearestFilter;
+      texture.minFilter = THREE.NearestFilter;
+      return texture;
+    }
+
+    let scene, camera, renderer;
+    let playerGroup, playerHead, playerLeftArm, playerRightArm, playerLeftLeg, playerRightLeg;
+    let exitDoorGroup, exitIndicators = [];
+    let room2DoorGroup, room2Indicators = [];
+    let guardianBirdGroup, birdWingLeft, birdWingRight;
+    let chestGroup, chestLidGroup, chestLootMesh;
+    let upperBoardGroup, beaconBeamMesh;
+    const colliders = [];
+    const interactables = [];
+
+    const player = {
+      pos: new THREE.Vector3(0, 0, 4),
+      rotY: Math.PI,
+      speed: 5.5,
+      radius: 0.55,
+      isMoving: false,
+      walkTime: 0
+    };
+
+    const camState = {
+      yaw: 0,
+      pitch: 0.28,
+      distance: 4.8,
+      height: 1.8,
+      targetPos: new THREE.Vector3()
+    };
+
+    function init3D() {
+      const canvas = document.getElementById('game-canvas');
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0e14);
+      scene.fog = new THREE.FogExp2(0x0a0e14, 0.035);
+
+      camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 100);
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      const ambientLight = new THREE.AmbientLight(0xfff7ed, 0.85);
+      scene.add(ambientLight);
+
+      const lanternPositions = [
+        { x: -6, y: 5.5, z: -4, col: 0xffb74d },
+        { x: 6, y: 5.5, z: -4, col: 0xffb74d },
+        { x: -6, y: 5.5, z: 4, col: 0xffb74d },
+        { x: 6, y: 5.5, z: 4, col: 0xffb74d },
+        { x: 0, y: 5.5, z: -8, col: 0x67e8f9 }
+      ];
+      lanternPositions.forEach(lp => {
+        const pLight = new THREE.PointLight(lp.col, 1.2, 14);
+        pLight.position.set(lp.x, lp.y, lp.z);
+        scene.add(pLight);
+        const lMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(0.5, 0.7, 0.5),
+          new THREE.MeshBasicMaterial({ color: lp.col })
+        );
+        lMesh.position.set(lp.x, lp.y, lp.z);
+        scene.add(lMesh);
+      });
+
+      const texStone = createProceduralTexture('stone');
+      const texFloor = createProceduralTexture('floor');
+      const texWood = createProceduralTexture('wood');
+      const texBooks = createProceduralTexture('bookshelf');
+      const texIron = createProceduralTexture('iron');
+
+      const halfW = 11;
+      const halfD = 11;
+      const roomH = 7.2;
+      texFloor.wrapS = THREE.RepeatWrapping;
+      texFloor.wrapT = THREE.RepeatWrapping;
+      texFloor.repeat.set(11, 11);
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(halfW * 2, halfD * 2),
+        new THREE.MeshLambertMaterial({ map: texFloor })
+      );
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      const ceiling = new THREE.Mesh(
+        new THREE.PlaneGeometry(halfW * 2, halfD * 2),
+        new THREE.MeshLambertMaterial({ color: 0x1e293b })
+      );
+      ceiling.rotation.x = Math.PI / 2;
+      ceiling.position.y = roomH;
+      scene.add(ceiling);
+
+      texStone.wrapS = THREE.RepeatWrapping;
+      texStone.wrapT = THREE.RepeatWrapping;
+      texStone.repeat.set(8, 3);
+      const wallMat = new THREE.MeshLambertMaterial({ map: texStone });
+
+      createWall(0, roomH / 2, halfD, halfW * 2, roomH, 0.8, wallMat);
+      createWall(-halfW, roomH / 2, 0, 0.8, roomH, halfD * 2, wallMat);
+      createWall(halfW, roomH / 2, 0, 0.8, roomH, halfD * 2, wallMat);
+
+      const doorW = 4;
+      createWall(-(halfW + doorW / 2) / 2, roomH / 2, -halfD, (halfW - doorW / 2), roomH, 0.8, wallMat);
+      createWall((halfW + doorW / 2) / 2, roomH / 2, -halfD, (halfW - doorW / 2), roomH, 0.8, wallMat);
+      createWall(0, roomH - 1, -halfD, doorW, 2, 0.8, wallMat);
+
+      buildGuardianBird(2.4, 0, 5.2);
+
+      buildArchiveChest(-4.5, 0, 1.2);
+
+      buildMezzanineAndStairs(texWood);
+
+      buildExhibitionPanel({
+        x: -5.8, y: 2.2, z: -10.2,
+        year: '1957',
+        colorTheme: 0x3b82f6,
+        title: "PANEL 1957\nKEMERDEKAAN"
+      });
+
+      buildExhibitionPanel({
+        x: 5.8, y: 2.2, z: -10.2,
+        year: '1963',
+        colorTheme: 0xf59e0b,
+        title: "PANEL 1963\nMALAYSIA"
+      });
+
+      exitDoorGroup = new THREE.Group();
+      exitDoorGroup.position.set(0, 0, -10.4);
+
+      const pillarMat = new THREE.MeshLambertMaterial({ color: 0x334155 });
+      const leftPillar = new THREE.Mesh(new THREE.BoxGeometry(0.8, 4.5, 0.8), pillarMat);
+      leftPillar.position.set(-1.8, 2.25, 0);
+      exitDoorGroup.add(leftPillar);
+      colliders.push(new THREE.Box3().setFromObject(leftPillar));
+
+      const rightPillar = new THREE.Mesh(new THREE.BoxGeometry(0.8, 4.5, 0.8), pillarMat);
+      rightPillar.position.set(1.8, 2.25, 0);
+      exitDoorGroup.add(rightPillar);
+      colliders.push(new THREE.Box3().setFromObject(rightPillar));
+
+      const doorMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(3.0, 4.0, 0.5),
+        new THREE.MeshLambertMaterial({ map: texIron })
+      );
+      doorMesh.position.set(0, 2.0, 0);
+      exitDoorGroup.add(doorMesh);
+      exitDoorGroup.doorSlab = doorMesh;
+
+      exitDoorGroup.collider = new THREE.Box3().setFromObject(doorMesh);
+      colliders.push(exitDoorGroup.collider);
+
+      const indGroup = new THREE.Group();
+      indGroup.position.set(0, 4.3, 0.3);
+      for (let i = 0; i < 6; i++) {
+        const gem = new THREE.Mesh(
+          new THREE.BoxGeometry(0.35, 0.35, 0.15),
+          new THREE.MeshStandardMaterial({
+            color: 0x334155,
+            emissive: 0x0f172a,
+            roughness: 0.5
+          })
+        );
+        gem.position.set(-1.25 + i * 0.5, 0, 0);
+        indGroup.add(gem);
+        exitIndicators.push(gem);
+      }
+      exitDoorGroup.add(indGroup);
+      scene.add(exitDoorGroup);
+
+      interactables.push({
+        type: 'exit_door',
+        name: 'Pintu Laluan ke Bilik 2',
+        pos: new THREE.Vector3(0, 1.5, -9.5),
+        radius: 2.2
+      });
+
+      const corrFloor = new THREE.Mesh(
+        new THREE.PlaneGeometry(4, 5),
+        new THREE.MeshLambertMaterial({ map: texFloor })
+      );
+      corrFloor.rotation.x = -Math.PI / 2;
+      corrFloor.position.set(0, 0, -13.5);
+      scene.add(corrFloor);
+
+      const corrCeil = new THREE.Mesh(
+        new THREE.PlaneGeometry(4, 5),
+        new THREE.MeshLambertMaterial({ color: 0x1e293b })
+      );
+      corrCeil.rotation.x = Math.PI / 2;
+      corrCeil.position.set(0, roomH, -13.5);
+      scene.add(corrCeil);
+
+      createWall(-2.2, roomH / 2, -13.5, 0.5, roomH, 5, wallMat);
+      createWall(2.2, roomH / 2, -13.5, 0.5, roomH, 5, wallMat);
+
+      const r2CenterZ = -27;
+      const r2Depth = 22;
+
+      const r2Floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(halfW * 2, r2Depth),
+        new THREE.MeshLambertMaterial({ map: texFloor })
+      );
+      r2Floor.rotation.x = -Math.PI / 2;
+      r2Floor.position.set(0, 0, r2CenterZ);
+      r2Floor.receiveShadow = true;
+      scene.add(r2Floor);
+
+      const r2Ceil = new THREE.Mesh(
+        new THREE.PlaneGeometry(halfW * 2, r2Depth),
+        new THREE.MeshLambertMaterial({ color: 0x1e293b })
+      );
+      r2Ceil.rotation.x = Math.PI / 2;
+      r2Ceil.position.set(0, roomH, r2CenterZ);
+      scene.add(r2Ceil);
+
+      createWall(-(halfW + doorW / 2) / 2, roomH / 2, -16, (halfW - doorW / 2), roomH, 0.8, wallMat);
+      createWall((halfW + doorW / 2) / 2, roomH / 2, -16, (halfW - doorW / 2), roomH, 0.8, wallMat);
+      createWall(-halfW, roomH / 2, r2CenterZ, 0.8, roomH, r2Depth, wallMat);
+      createWall(halfW, roomH / 2, r2CenterZ, 0.8, roomH, r2Depth, wallMat);
+      createWall(-(halfW + doorW / 2) / 2, roomH / 2, -38, (halfW - doorW / 2), roomH, 0.8, wallMat);
+      createWall((halfW + doorW / 2) / 2, roomH / 2, -38, (halfW - doorW / 2), roomH, 0.8, wallMat);
+      createWall(0, roomH - 1, -38, doorW, 2, 0.8, wallMat);
+
+      const r2Lanterns = [
+        { x: -6, y: 4, z: -21, col: 0x38bdf8 },
+        { x: 6, y: 4, z: -21, col: 0x38bdf8 },
+        { x: -6, y: 4, z: -33, col: 0xf59e0b },
+        { x: 6, y: 4, z: -33, col: 0xf59e0b },
+        { x: 0, y: 4, z: -36.5, col: 0x10b981 }
+      ];
+      r2Lanterns.forEach(lp => {
+        const pLight = new THREE.PointLight(lp.col, 1.3, 15);
+        pLight.position.set(lp.x, lp.y, lp.z);
+        scene.add(pLight);
+        const lMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(0.5, 0.7, 0.5),
+          new THREE.MeshBasicMaterial({ color: lp.col })
+        );
+        lMesh.position.set(lp.x, lp.y, lp.z);
+        scene.add(lMesh);
+      });
+
+      buildMapTable(0, r2CenterZ, texWood);
+
+      buildBookshelf(-9.5, 2, -21, 1.5, 4, 4, texBooks, texWood);
+      buildBookshelf(-9.5, 2, -33, 1.5, 4, 4, texBooks, texWood);
+      buildBookshelf(9.5, 2, -21, 1.5, 4, 4, texBooks, texWood);
+      buildBookshelf(9.5, 2, -33, 1.5, 4, 4, texBooks, texWood);
+
+      const clueLocations = [
+        { x: -6.5, z: -21, id: "1" },
+        { x: 6.5, z: -21, id: "2" },
+        { x: -6.5, z: -33, id: "3" },
+        { x: 6.5, z: -33, id: "4" }
+      ];
+      gameState.clues = ROOM2_CLUES_DATA.map((item, idx) => {
+        const loc = clueLocations[idx];
+        const deskObj = buildClueDesk(loc.x, loc.z, item.id);
+        return {
+          ...item,
+          worldMesh: deskObj.cardMesh,
+          deskGroup: deskObj.deskGroup,
+          pos: new THREE.Vector3(loc.x, 1.2, loc.z)
+        };
+      });
+
+      gameState.clues.forEach(clue => {
+        interactables.push({
+          type: 'clue',
+          id: clue.id,
+          name: `Fail Petunjuk ${clue.id}`,
+          pos: clue.pos,
+          radius: 2.0
+        });
+      });
+
+      room2DoorGroup = new THREE.Group();
+      room2DoorGroup.position.set(0, 0, -37.4);
+
+      const r2PillarMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
+      const r2LeftPillar = new THREE.Mesh(new THREE.BoxGeometry(0.8, 4.5, 0.8), r2PillarMat);
+      r2LeftPillar.position.set(-1.8, 2.25, 0);
+      room2DoorGroup.add(r2LeftPillar);
+      colliders.push(new THREE.Box3().setFromObject(r2LeftPillar));
+
+      const r2RightPillar = new THREE.Mesh(new THREE.BoxGeometry(0.8, 4.5, 0.8), r2PillarMat);
+      r2RightPillar.position.set(1.8, 2.25, 0);
+      room2DoorGroup.add(r2RightPillar);
+      colliders.push(new THREE.Box3().setFromObject(r2RightPillar));
+
+      const r2DoorMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(3.0, 4.0, 0.5),
+        new THREE.MeshLambertMaterial({ map: texIron })
+      );
+      r2DoorMesh.position.set(0, 2.0, 0);
+      room2DoorGroup.add(r2DoorMesh);
+      room2DoorGroup.doorSlab = r2DoorMesh;
+
+      room2DoorGroup.collider = new THREE.Box3().setFromObject(r2DoorMesh);
+      colliders.push(room2DoorGroup.collider);
+
+      const r2IndGroup = new THREE.Group();
+      r2IndGroup.position.set(0, 4.3, 0.3);
+      for (let i = 0; i < 2; i++) {
+        const gem = new THREE.Mesh(
+          new THREE.BoxGeometry(0.5, 0.5, 0.2),
+          new THREE.MeshStandardMaterial({
+            color: 0x334155,
+            emissive: 0x0f172a,
+            roughness: 0.5
+          })
+        );
+        gem.position.set(-0.6 + i * 1.2, 0, 0);
+        r2IndGroup.add(gem);
+        room2Indicators.push(gem);
+      }
+      room2DoorGroup.add(r2IndGroup);
+      scene.add(room2DoorGroup);
+
+      interactables.push({
+        type: 'room2_door',
+        name: 'Pintu Keluar Utama Arkib',
+        pos: new THREE.Vector3(0, 1.5, -36.5),
+        radius: 2.3
+      });
+
+      buildBookshelf(-9.5, 2, -4, 1.5, 4, 4, texBooks, texWood);
+      buildBookshelf(-9.5, 2, 4, 1.5, 4, 4, texBooks, texWood);
+      buildBookshelf(9.5, 2, -4, 1.5, 4, 4, texBooks, texWood);
+      buildBookshelf(9.5, 2, 4, 1.5, 4, 4, texBooks, texWood);
+
+      const centerPillar = new THREE.Mesh(
+        new THREE.BoxGeometry(2, roomH, 2),
+        new THREE.MeshLambertMaterial({ map: texStone })
+      );
+      centerPillar.position.set(0, roomH / 2, 0);
+      scene.add(centerPillar);
+      colliders.push(new THREE.Box3().setFromObject(centerPillar));
+
+      const cardLocations = [
+        { x: -6.5, z: 6.5, id: 'A' },
+        { x: -6.5, z: -1.0, id: 'B' },
+        { x: -3.2, z: 4.5, id: 'C' },
+        { x: 3.2, z: 4.5, id: 'D' },
+        { x: 5.6, z: 0.8, id: 'E' },
+        { x: 6.5, z: 6.5, id: 'F' }
+      ];
+
+      gameState.cards = INITIAL_EVIDENCE_DATA.map((item, idx) => {
+        const loc = cardLocations[idx];
+        const deskObj = buildEvidenceDesk(loc.x, loc.z, item.id);
+        return {
+          ...item,
+          status: 'world',
+          placedPanel: null,
+          worldMesh: deskObj.cardMesh,
+          deskGroup: deskObj.deskGroup,
+          pos: new THREE.Vector3(loc.x, 1.2, loc.z)
+        };
+      });
+
+      gameState.cards.forEach(card => {
+        interactables.push({
+          type: 'card',
+          id: card.id,
+          name: `Fail Rekod ${card.id}`,
+          pos: card.pos,
+          radius: 2.0
+        });
+      });
+
+      createPlayerAvatar();
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    /* Helper: Create Wall */
+    function createWall(x, y, z, w, h, d, material) {
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+      wall.position.set(x, y, z);
+      wall.receiveShadow = true;
+      scene.add(wall);
+      colliders.push(new THREE.Box3().setFromObject(wall));
+      return wall;
+    }
+
+    /* Helper: Build Bookshelf */
+    function buildBookshelf(x, y, z, w, h, d, texShelf, texWood) {
+      const group = new THREE.Group();
+      group.position.set(x, y, z);
+      const shelf = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshLambertMaterial({ map: texShelf })
+      );
+      shelf.castShadow = true;
+      shelf.receiveShadow = true;
+      group.add(shelf);
+      scene.add(group);
+      colliders.push(new THREE.Box3().setFromObject(shelf));
+    }
+
+    function buildGuardianBird(x, y, z) {
+      guardianBirdGroup = new THREE.Group();
+      guardianBirdGroup.position.set(x, y, z);
+
+      // Tiang kayu tenggekan burung
+      const postMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.2, 0.25, 1.3, 8),
+        new THREE.MeshLambertMaterial({ color: 0x5c3818 })
+      );
+      postMesh.position.y = 0.65;
+      guardianBirdGroup.add(postMesh);
+      colliders.push(new THREE.Box3().setFromObject(postMesh));
+
+      // Badan Burung
+      const birdMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.4 });
+      const bellyMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, roughness: 0.5 });
+      const beakMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.3 });
+
+      const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.4, 0.45), birdMat);
+      bodyMesh.position.y = 1.48;
+      guardianBirdGroup.add(bodyMesh);
+
+      const bellyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.3, 0.1), bellyMat);
+      bellyMesh.position.set(0, 1.45, 0.21);
+      guardianBirdGroup.add(bellyMesh);
+
+      // Kepala Burung
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0, 1.74, 0.12);
+
+      const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 0.28), birdMat);
+      headGroup.add(headMesh);
+
+      const beakMesh = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.18, 4), beakMat);
+      beakMesh.rotation.x = Math.PI / 2;
+      beakMesh.position.set(0, 0, 0.2);
+      headGroup.add(beakMesh);
+
+      guardianBirdGroup.head = headGroup;
+      guardianBirdGroup.add(headGroup);
+
+      // Sayap Kiri & Kanan
+      birdWingLeft = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.26, 0.35), birdMat);
+      birdWingLeft.position.set(-0.21, 1.5, 0);
+      guardianBirdGroup.add(birdWingLeft);
+
+      birdWingRight = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.26, 0.35), birdMat);
+      birdWingRight.position.set(0.21, 1.5, 0);
+      guardianBirdGroup.add(birdWingRight);
+
+      // Ekor Burung
+      const tailMesh = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.3), birdMat);
+      tailMesh.position.set(0, 1.46, -0.3);
+      tailMesh.rotation.x = -Math.PI / 8;
+      guardianBirdGroup.add(tailMesh);
+
+      // Cahaya lembut burung
+      const birdLight = new THREE.PointLight(0x38bdf8, 0.8, 4);
+      birdLight.position.set(0, 1.8, 0);
+      guardianBirdGroup.add(birdLight);
+
+      scene.add(guardianBirdGroup);
+
+      interactables.push({
+        type: 'bird',
+        name: 'Burung Penjaga Arkib',
+        pos: new THREE.Vector3(x, 1.3, z),
+        radius: 2.4
+      });
+    }
+
+    function buildArchiveChest(x, y, z) {
+      chestGroup = new THREE.Group();
+      chestGroup.position.set(x, y, z);
+
+      const woodMat = new THREE.MeshLambertMaterial({ color: 0x5c3818 });
+      const ironMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.6, roughness: 0.4 });
+      const goldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xd97706, emissiveIntensity: 0.4 });
+
+      // Kotak Bawah Peti
+      const chestBase = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.7, 1.0), woodMat);
+      chestBase.position.y = 0.35;
+      chestGroup.add(chestBase);
+
+      const baseRim = new THREE.Mesh(new THREE.BoxGeometry(1.44, 0.12, 1.04), ironMat);
+      baseRim.position.y = 0.68;
+      chestGroup.add(baseRim);
+
+      // Kumpulan Penutup Peti (Boleh Berputar pada Engsel Belakang)
+      chestLidGroup = new THREE.Group();
+      chestLidGroup.position.set(0, 0.72, -0.5);
+
+      const lidMesh = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.35, 1.02), woodMat);
+      lidMesh.position.set(0, 0.175, 0.5);
+      chestLidGroup.add(lidMesh);
+
+      const lockLatch = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.25, 0.1), goldMat);
+      lockLatch.position.set(0, 0.1, 1.03);
+      chestLidGroup.add(lockLatch);
+
+      chestGroup.add(chestLidGroup);
+
+      // Kepingan Harta Karun di Dalam Peti
+      chestLootMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.7, 0.15, 0.5),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.8 })
+      );
+      chestLootMesh.position.set(0, 0.6, 0);
+      chestGroup.add(chestLootMesh);
+
+      const chestLight = new THREE.PointLight(0xf59e0b, 0.6, 4);
+      chestLight.position.set(0, 1.2, 0);
+      chestGroup.add(chestLight);
+      chestGroup.light = chestLight;
+
+      scene.add(chestGroup);
+      chestGroup.updateMatrixWorld(true);
+      colliders.push(new THREE.Box3().setFromObject(chestBase));
+
+      interactables.push({
+        type: 'chest',
+        name: 'Peti Dokumen Asas 1957',
+        pos: new THREE.Vector3(x, 1.0, z),
+        radius: 2.4
+      });
+    }
+
+    function buildMezzanineAndStairs(texWood) {
+      const mezH = 2.6; // Ketinggian mezanin
+
+      // Lantai Mezanin Atas (Z: -1.0 hingga -9.0, X: 4.8 hingga 10.2)
+      const mezFloor = new THREE.Mesh(
+        new THREE.BoxGeometry(5.4, 0.3, 8.0),
+        new THREE.MeshLambertMaterial({ color: 0x27272a })
+      );
+      mezFloor.position.set(7.5, mezH - 0.15, -5.0);
+      mezFloor.receiveShadow = true;
+      scene.add(mezFloor);
+
+      // Tiang Sokongan Mezanin
+      const pillarMat = new THREE.MeshLambertMaterial({ color: 0x3f3f46 });
+      const p1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, mezH, 0.4), pillarMat);
+      p1.position.set(4.9, mezH / 2, -1.2);
+      scene.add(p1);
+      colliders.push(new THREE.Box3().setFromObject(p1));
+
+      const p2 = new THREE.Mesh(new THREE.BoxGeometry(0.4, mezH, 0.4), pillarMat);
+      p2.position.set(4.9, mezH / 2, -8.8);
+      scene.add(p2);
+      colliders.push(new THREE.Box3().setFromObject(p2));
+
+      // Pagar Keselamatan Sisi Barat (X: 4.85)
+      const railMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.5, roughness: 0.3 });
+      const westRail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.85, 7.8), railMat);
+      westRail.position.set(4.85, mezH + 0.42, -5.0);
+      scene.add(westRail);
+      colliders.push(new THREE.Box3().setFromObject(westRail));
+
+      // Pagar Keselamatan Hadapan Selatan dengan Ruang Laluan Tangga (Z: -1.0)
+      // Bahagian Kiri Pagar (X: 4.8 hingga 7.3)
+      const southRailLeft = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.85, 0.12), railMat);
+      southRailLeft.position.set(6.05, mezH + 0.42, -1.0);
+      scene.add(southRailLeft);
+      colliders.push(new THREE.Box3().setFromObject(southRailLeft));
+
+      // Bahagian Kanan Pagar (X: 8.7 hingga 10.2)
+      const southRailRight = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.85, 0.12), railMat);
+      southRailRight.position.set(9.45, mezH + 0.42, -1.0);
+      scene.add(southRailRight);
+      colliders.push(new THREE.Box3().setFromObject(southRailRight));
+
+      // Tangga Menegak Arkib (Vertical Ladder) pada X: 8.0, Z: -0.95
+      const ladderGroup = new THREE.Group();
+      ladderGroup.position.set(8.0, 0, -0.95);
+
+      const ladderMat = new THREE.MeshStandardMaterial({ color: 0xb45309, metalness: 0.7, roughness: 0.25 });
+      const rungMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.6, roughness: 0.3 });
+
+      // Dua Tiang Sisi Menegak Tangga (Dari Lantai hingga melebihi paras Mezanin untuk pemegang keselamatan)
+      const totalLadderH = mezH + 0.85;
+      const leftStile = new THREE.Mesh(new THREE.BoxGeometry(0.08, totalLadderH, 0.08), ladderMat);
+      leftStile.position.set(-0.46, totalLadderH / 2, 0);
+      ladderGroup.add(leftStile);
+
+      const rightStile = new THREE.Mesh(new THREE.BoxGeometry(0.08, totalLadderH, 0.08), ladderMat);
+      rightStile.position.set(0.46, totalLadderH / 2, 0);
+      ladderGroup.add(rightStile);
+
+      // Pemegang Atas Melengkung Keselamatan
+      const topHandle = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.08, 0.2), ladderMat);
+      topHandle.position.set(0, totalLadderH, -0.06);
+      ladderGroup.add(topHandle);
+
+      // Anak-Anak Tangga Menegak (Rungs)
+      const numRungs = 9;
+      for (let r = 1; r <= numRungs; r++) {
+        const rungY = (r / numRungs) * mezH;
+        const rung = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.88, 8), rungMat);
+        rung.rotation.z = Math.PI / 2;
+        rung.position.set(0, rungY, 0);
+        ladderGroup.add(rung);
+      }
+
+      scene.add(ladderGroup);
+
+      // Objek Interaktif Tangga
+      interactables.push({
+        type: 'ladder',
+        name: 'Tangga Menegak Mezanin',
+        pos: new THREE.Vector3(8.0, 1.3, -0.95),
+        radius: 2.1
+      });
+
+      // Papan Pameran Susun Gambar di Tingkat Atas
+      upperBoardGroup = new THREE.Group();
+      upperBoardGroup.position.set(7.5, mezH + 1.4, -8.6);
+
+      const boardBack = new THREE.Mesh(
+        new THREE.BoxGeometry(3.6, 2.0, 0.25),
+        new THREE.MeshLambertMaterial({ color: 0x0f172a })
+      );
+      upperBoardGroup.add(boardBack);
+
+      const boardBorder = new THREE.Mesh(
+        new THREE.BoxGeometry(3.75, 2.15, 0.1),
+        new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x0891b2, emissiveIntensity: 0.4 })
+      );
+      boardBorder.position.z = -0.1;
+      upperBoardGroup.add(boardBorder);
+
+      // 4 Slot Paparan Visual pada Papan
+      for (let s = 0; s < 4; s++) {
+        const slotPlate = new THREE.Mesh(
+          new THREE.BoxGeometry(0.75, 1.2, 0.1),
+          new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 })
+        );
+        slotPlate.position.set(-1.2 + s * 0.8, 0, 0.1);
+        upperBoardGroup.add(slotPlate);
+      }
+
+      // Tiang Pancaran Cahaya Kejayaan di sebelah Papan
+      beaconBeamMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.2, 0.2, 5.0, 16),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.75 })
+      );
+      beaconBeamMesh.position.set(-2.2, 1.2, 0);
+      beaconBeamMesh.visible = false;
+      upperBoardGroup.add(beaconBeamMesh);
+
+      scene.add(upperBoardGroup);
+      colliders.push(new THREE.Box3().setFromObject(boardBack));
+
+      interactables.push({
+        type: 'upper_board',
+        name: 'Papan Garis Masa Sejarah (Tingkat Atas)',
+        pos: new THREE.Vector3(7.5, mezH + 1.0, -7.5),
+        radius: 2.8
+      });
+    }
+
+    /* Helper: Build Exhibition Panel */
+    function buildExhibitionPanel({ x, y, z, year, colorTheme, title }) {
+      const group = new THREE.Group();
+      group.position.set(x, y, z);
+
+      const board = new THREE.Mesh(
+        new THREE.BoxGeometry(5.2, 3.2, 0.3),
+        new THREE.MeshLambertMaterial({ color: 0x1f2937 })
+      );
+      group.add(board);
+
+      const border = new THREE.Mesh(
+        new THREE.BoxGeometry(5.4, 3.4, 0.1),
+        new THREE.MeshBasicMaterial({ color: colorTheme, wireframe: false })
+      );
+      border.position.z = -0.12;
+      group.add(border);
+
+      const headerPlate = new THREE.Mesh(
+        new THREE.BoxGeometry(3.0, 0.7, 0.2),
+        new THREE.MeshStandardMaterial({
+          color: colorTheme,
+          emissive: colorTheme,
+          emissiveIntensity: 0.35,
+          roughness: 0.3
+        })
+      );
+      headerPlate.position.set(0, 1.15, 0.15);
+      group.add(headerPlate);
+
+      group.slots = [];
+      for (let i = 0; i < 3; i++) {
+        const slot = new THREE.Mesh(
+          new THREE.BoxGeometry(1.3, 1.4, 0.15),
+          new THREE.MeshStandardMaterial({
+            color: 0x111827,
+            roughness: 0.8
+          })
+        );
+        slot.position.set(-1.6 + i * 1.6, -0.3, 0.12);
+        group.add(slot);
+        group.slots.push(slot);
+      }
+
+      scene.add(group);
+      colliders.push(new THREE.Box3().setFromObject(board));
+
+      interactables.push({
+        type: 'panel',
+        year: year,
+        name: `Panel Pameran ${year}`,
+        pos: new THREE.Vector3(x, 1.5, z + 1.2),
+        radius: 2.6,
+        meshGroup: group
+      });
+    }
+
+    /* Helper: Build Evidence Desk */
+    function buildEvidenceDesk(x, z, cardId) {
+      const deskGroup = new THREE.Group();
+      deskGroup.position.set(x, 0, z);
+
+      const desk = new THREE.Mesh(
+        new THREE.BoxGeometry(1.4, 1.0, 1.4),
+        new THREE.MeshLambertMaterial({ color: 0x4a2c11 })
+      );
+      desk.position.y = 0.5;
+      desk.castShadow = true;
+      deskGroup.add(desk);
+      colliders.push(new THREE.Box3().setFromObject(desk));
+
+      const topRim = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 0.12, 1.6),
+        new THREE.MeshLambertMaterial({ color: 0x78350f })
+      );
+      topRim.position.y = 1.05;
+      deskGroup.add(topRim);
+
+      const cardTex = createProceduralTexture('card');
+      const cardMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.55, 0.08, 0.75),
+        new THREE.MeshStandardMaterial({
+          map: cardTex,
+          emissive: 0xd97706,
+          emissiveIntensity: 0.35,
+          roughness: 0.4
+        })
+      );
+      cardMesh.position.set(0, 1.45, 0);
+      deskGroup.add(cardMesh);
+
+      const itemLight = new THREE.PointLight(0xf59e0b, 0.6, 3.5);
+      itemLight.position.set(0, 1.6, 0);
+      deskGroup.add(itemLight);
+
+      scene.add(deskGroup);
+      return { deskGroup, cardMesh };
+    }
+
+    /* Helper: Build Clue Desk */
+    function buildClueDesk(x, z, clueId) {
+      const deskGroup = new THREE.Group();
+      deskGroup.position.set(x, 0, z);
+
+      const desk = new THREE.Mesh(
+        new THREE.BoxGeometry(1.4, 1.0, 1.4),
+        new THREE.MeshLambertMaterial({ color: 0x1e3a8a })
+      );
+      desk.position.y = 0.5;
+      desk.castShadow = true;
+      deskGroup.add(desk);
+      colliders.push(new THREE.Box3().setFromObject(desk));
+
+      const topRim = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 0.12, 1.6),
+        new THREE.MeshLambertMaterial({ color: 0x0284c7 })
+      );
+      topRim.position.y = 1.05;
+      deskGroup.add(topRim);
+
+      const cardTex = createProceduralTexture('card');
+      const cardMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.55, 0.08, 0.75),
+        new THREE.MeshStandardMaterial({
+          map: cardTex,
+          emissive: 0x06b6d4,
+          emissiveIntensity: 0.4,
+          roughness: 0.4
+        })
+      );
+      cardMesh.position.set(0, 1.45, 0);
+      deskGroup.add(cardMesh);
+
+      const itemLight = new THREE.PointLight(0x38bdf8, 0.7, 3.5);
+      itemLight.position.set(0, 1.6, 0);
+      deskGroup.add(itemLight);
+
+      scene.add(deskGroup);
+      return { deskGroup, cardMesh };
+    }
+
+    /* Helper: Build Map Table */
+    function buildMapTable(x, z, texWood) {
+      const tableGroup = new THREE.Group();
+      tableGroup.position.set(x, 0, z);
+
+      const tableBase = new THREE.Mesh(
+        new THREE.BoxGeometry(5.2, 0.9, 3.6),
+        new THREE.MeshLambertMaterial({ map: texWood })
+      );
+      tableBase.position.y = 0.45;
+      tableBase.castShadow = true;
+      tableGroup.add(tableBase);
+      colliders.push(new THREE.Box3().setFromObject(tableBase));
+
+      const tableTop = new THREE.Mesh(
+        new THREE.BoxGeometry(5.6, 0.15, 4.0),
+        new THREE.MeshLambertMaterial({ color: 0x0f172a })
+      );
+      tableTop.position.y = 0.95;
+      tableGroup.add(tableTop);
+
+      const mapSurface = new THREE.Mesh(
+        new THREE.PlaneGeometry(4.8, 3.2),
+        new THREE.MeshStandardMaterial({
+          color: 0x0369a1,
+          emissive: 0x0284c7,
+          emissiveIntensity: 0.5,
+          roughness: 0.2
+        })
+      );
+      mapSurface.rotation.x = -Math.PI / 2;
+      mapSurface.position.y = 1.04;
+      tableGroup.add(mapSurface);
+
+      const podA = new THREE.Mesh(
+        new THREE.BoxGeometry(0.8, 0.5, 0.6),
+        new THREE.MeshStandardMaterial({ color: 0x2563eb, emissive: 0x1d4ed8, emissiveIntensity: 0.5 })
+      );
+      podA.position.set(-1.8, 1.25, 1.4);
+      tableGroup.add(podA);
+
+      const podB = new THREE.Mesh(
+        new THREE.BoxGeometry(0.8, 0.5, 0.6),
+        new THREE.MeshStandardMaterial({ color: 0xd97706, emissive: 0xb45309, emissiveIntensity: 0.5 })
+      );
+      podB.position.set(1.8, 1.25, 1.4);
+      tableGroup.add(podB);
+
+      const tableLight = new THREE.PointLight(0x38bdf8, 1.2, 5.0);
+      tableLight.position.set(0, 1.8, 0);
+      tableGroup.add(tableLight);
+
+      scene.add(tableGroup);
+
+      interactables.push({
+        type: 'map_table',
+        name: 'Meja Peta Sejarah',
+        pos: new THREE.Vector3(x, 1.2, z),
+        radius: 3.2
+      });
+    }
+
+    function createPlayerAvatar() {
+      playerGroup = new THREE.Group();
+
+      const skinMat = new THREE.MeshLambertMaterial({ color: 0xffdfca });
+      const navySuitMat = new THREE.MeshLambertMaterial({ color: 0x1f3669 });
+      const navyDarkMat = new THREE.MeshLambertMaterial({ color: 0x14244a });
+      const whiteTrimMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+      const leatherMat = new THREE.MeshLambertMaterial({ color: 0x6e3b18 });
+      const strapMat = new THREE.MeshLambertMaterial({ color: 0x93562a });
+      const buckleMat = new THREE.MeshLambertMaterial({ color: 0xd4a373 });
+      const shoesMat = new THREE.MeshLambertMaterial({ color: 0x3d2011 });
+
+      const texFloralHijab = createFloralHijabTexture();
+      const hijabMat = new THREE.MeshLambertMaterial({ map: texFloralHijab });
+      const faceTex = createAvatarFaceTexture();
+      const faceMat = new THREE.MeshLambertMaterial({ map: faceTex });
+
+      // ==========================================
+      // 1. BADAN & KOT BIRU GELAP (TORSO & UNIFORM)
+      // ==========================================
+      const torsoGroup = new THREE.Group();
+      torsoGroup.position.y = 1.35;
+
+      // Bahagian utama kot/baju
+      const torsoMesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.9, 0.44), navySuitMat);
+      torsoMesh.castShadow = true;
+      torsoGroup.add(torsoMesh);
+
+      // Labuh bawah baju / peplum kurung
+      const skirtHem = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.28, 0.48), navySuitMat);
+      skirtHem.position.y = -0.42;
+      torsoGroup.add(skirtHem);
+
+      // Perincian belahan tengah baju kurung
+      const seamLine = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.75, 0.04), navyDarkMat);
+      seamLine.position.set(0, -0.05, 0.22);
+      torsoGroup.add(seamLine);
+
+      // ==========================================
+      // 2. JUNTAIAN TUDUNG BERBUNGA (FRONT DRAPE - V SHAPE)
+      // ==========================================
+      const drapeMat = new THREE.MeshLambertMaterial({ map: texFloralHijab });
+      // Lapisan atas tudung menutup dada
+      const chestDrape = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.52, 0.06), drapeMat);
+      chestDrape.position.set(0, 0.16, 0.24);
+      torsoGroup.add(chestDrape);
+
+      // Bentuk segi tiga runcing tudung ke bawah
+      const drapePoint = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.45, 4), drapeMat);
+      drapePoint.rotation.z = Math.PI;
+      drapePoint.rotation.y = Math.PI / 4;
+      drapePoint.position.set(0, -0.15, 0.24);
+      torsoGroup.add(drapePoint);
+
+      // ==========================================
+      // 3. BEG GALAS COKLAT & TALI KANCING (BACKPACK)
+      // ==========================================
+      const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.72, 0.26), leatherMat);
+      backpack.position.set(0, 0.05, -0.32);
+      backpack.castShadow = true;
+      torsoGroup.add(backpack);
+
+      const bagPocket = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.32, 0.08), leatherMat);
+      bagPocket.position.set(0, -0.12, -0.48);
+      torsoGroup.add(bagPocket);
+
+      // Tali beg galas kiri & kanan
+      const lStrap = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.85, 0.06), strapMat);
+      lStrap.position.set(-0.25, 0.08, 0.23);
+      torsoGroup.add(lStrap);
+
+      const rStrap = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.85, 0.06), strapMat);
+      rStrap.position.set(0.25, 0.08, 0.23);
+      torsoGroup.add(rStrap);
+
+      // Kancing buckle logam tali beg
+      const lBuckle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.08), buckleMat);
+      lBuckle.position.set(-0.25, 0.02, 0.24);
+      torsoGroup.add(lBuckle);
+
+      const rBuckle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.08), buckleMat);
+      rBuckle.position.set(0.25, 0.02, 0.24);
+      torsoGroup.add(rBuckle);
+
+      playerGroup.add(torsoGroup);
+
+      // ==========================================
+      // 4. KEPALA & TUDUNG BERBUNGA (HEAD & HIJAB)
+      // ==========================================
+      playerHead = new THREE.Group();
+      playerHead.position.set(0, 2.15, 0);
+
+      // Muka watak (tekstur muka di hadapan +Z)
+      const headFace = new THREE.Mesh(
+        new THREE.BoxGeometry(0.66, 0.66, 0.66),
+        [
+          skinMat, // Kanan (+X)
+          skinMat, // Kiri (-X)
+          hijabMat, // Atas (+Y)
+          skinMat, // Bawah (-Y)
+          faceMat, // Hadapan muka (+Z)
+          hijabMat  // Belakang (+Z)
+        ]
+      );
+      headFace.castShadow = true;
+      playerHead.add(headFace);
+
+      // Kubah atas tudung bervolum (Floral Dome)
+      const hijabDome = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.35, 0.76), hijabMat);
+      hijabDome.position.set(0, 0.22, -0.02);
+      playerHead.add(hijabDome);
+
+      // Bahagian belakang tudung
+      const hijabBack = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.72, 0.2), hijabMat);
+      hijabBack.position.set(0, -0.05, -0.32);
+      playerHead.add(hijabBack);
+
+      // Pipi/sisi tudung kiri & kanan
+      const hijabLeft = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.7, 0.68), hijabMat);
+      hijabLeft.position.set(-0.35, -0.03, -0.02);
+      playerHead.add(hijabLeft);
+
+      const hijabRight = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.7, 0.68), hijabMat);
+      hijabRight.position.set(0.35, -0.03, -0.02);
+      playerHead.add(hijabRight);
+
+      // Lilitan tudung bawah dagu / leher (Neck Cowl)
+      const neckWrap = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.22, 0.64), hijabMat);
+      neckWrap.position.set(0, -0.34, 0.05);
+      playerHead.add(neckWrap);
+
+      playerGroup.add(playerHead);
+
+      // ==========================================
+      // 5. LENGAN, PERGELANGAN PUTIH & TANGAN (ARMS)
+      // ==========================================
+      playerLeftArm = new THREE.Group();
+      playerLeftArm.position.set(-0.56, 1.75, 0);
+
+      const lSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.7, 0.32), navySuitMat);
+      lSleeve.position.y = -0.32;
+      lSleeve.castShadow = true;
+      playerLeftArm.add(lSleeve);
+
+      const lCuff = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.08, 0.34), whiteTrimMat);
+      lCuff.position.y = -0.65;
+      playerLeftArm.add(lCuff);
+
+      const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.22, 0.26), skinMat);
+      lHand.position.y = -0.78;
+      playerLeftArm.add(lHand);
+
+      playerGroup.add(playerLeftArm);
+
+      playerRightArm = new THREE.Group();
+      playerRightArm.position.set(0.56, 1.75, 0);
+
+      const rSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.7, 0.32), navySuitMat);
+      rSleeve.position.y = -0.32;
+      rSleeve.castShadow = true;
+      playerRightArm.add(rSleeve);
+
+      const rCuff = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.08, 0.34), whiteTrimMat);
+      rCuff.position.y = -0.65;
+      playerRightArm.add(rCuff);
+
+      const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.22, 0.26), skinMat);
+      rHand.position.y = -0.78;
+      playerRightArm.add(rHand);
+
+      playerGroup.add(playerRightArm);
+
+      // ==========================================
+      // 6. SELUAR & KASUT COKLAT (LEGS & SHOES)
+      // ==========================================
+      playerLeftLeg = new THREE.Group();
+      playerLeftLeg.position.set(-0.23, 0.82, 0);
+
+      const lPants = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.65, 0.36), navyDarkMat);
+      lPants.position.y = -0.3;
+      lPants.castShadow = true;
+      playerLeftLeg.add(lPants);
+
+      const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.2, 0.44), shoesMat);
+      lShoe.position.set(0, -0.68, 0.04);
+      lShoe.castShadow = true;
+      playerLeftLeg.add(lShoe);
+
+      const lShoeRim = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.26), buckleMat);
+      lShoeRim.position.set(0, -0.58, 0.04);
+      playerLeftLeg.add(lShoeRim);
+
+      playerGroup.add(playerLeftLeg);
+
+      playerRightLeg = new THREE.Group();
+      playerRightLeg.position.set(0.23, 0.82, 0);
+
+      const rPants = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.65, 0.36), navyDarkMat);
+      rPants.position.y = -0.3;
+      rPants.castShadow = true;
+      playerRightLeg.add(rPants);
+
+      const rShoe = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.2, 0.44), shoesMat);
+      rShoe.position.set(0, -0.68, 0.04);
+      rShoe.castShadow = true;
+      playerRightLeg.add(rShoe);
+
+      const rShoeRim = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.26), buckleMat);
+      rShoeRim.position.set(0, -0.58, 0.04);
+      playerRightLeg.add(rShoeRim);
+
+      playerGroup.add(playerRightLeg);
+
+      playerGroup.position.copy(player.pos);
+      playerGroup.rotation.y = player.rotY;
+      scene.add(playerGroup);
+    }
+
+    function setupControls() {
+      window.addEventListener('keydown', (e) => {
+        if (gameState.paused) return;
+        const key = e.key.toLowerCase();
+        if (key === 'w' || key === 'arrowup') input.forward = 1;
+        if (key === 's' || key === 'arrowdown') input.forward = -1;
+        if (key === 'a' || key === 'arrowleft') input.strafe = -1;
+        if (key === 'd' || key === 'arrowright') input.strafe = 1;
+        if (key === 'e') triggerInteraction();
+      });
+
+      window.addEventListener('keyup', (e) => {
+        const key = e.key.toLowerCase();
+        if ((key === 'w' || key === 'arrowup') && input.forward === 1) input.forward = 0;
+        if ((key === 's' || key === 'arrowdown') && input.forward === -1) input.forward = 0;
+        if ((key === 'a' || key === 'arrowleft') && input.strafe === -1) input.strafe = 0;
+        if ((key === 'd' || key === 'arrowright') && input.strafe === 1) input.strafe = 0;
+      });
+
+      const canvas = document.getElementById('game-canvas');
+      if (canvas) {
+        canvas.addEventListener('mousedown', (e) => {
+          if (gameState.paused) return;
+          input.isMouseDown = true;
+          input.mouseX = e.clientX;
+          input.mouseY = e.clientY;
+        });
+      }
+
+      window.addEventListener('mousemove', (e) => {
+        if (!input.isMouseDown || gameState.paused) return;
+        const dx = e.clientX - input.mouseX;
+        const dy = e.clientY - input.mouseY;
+        input.mouseX = e.clientX;
+        input.mouseY = e.clientY;
+        camState.yaw -= dx * 0.005;
+        camState.pitch += dy * 0.004;
+        camState.pitch = Math.max(0.05, Math.min(0.65, camState.pitch));
+      });
+
+      window.addEventListener('mouseup', () => {
+        input.isMouseDown = false;
+      });
+
+      const joystickZone = document.getElementById('joystick-zone');
+      const joystickKnob = document.getElementById('joystick-knob');
+      let joyTouchId = null;
+      let joyCenter = { x: 0, y: 0 };
+
+      if (joystickZone && joystickKnob) {
+        joystickZone.addEventListener('touchstart', (e) => {
+          if (gameState.paused) return;
+          e.preventDefault();
+          const touch = e.changedTouches[0];
+          joyTouchId = touch.identifier;
+          const rect = joystickZone.getBoundingClientRect();
+          joyCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+          updateJoystick(touch.clientX, touch.clientY);
+        }, { passive: false });
+
+        window.addEventListener('touchmove', (e) => {
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            const touch = e.changedTouches[i];
+            if (touch.identifier === joyTouchId) {
+              updateJoystick(touch.clientX, touch.clientY);
+            } else if (touch.identifier === input.touchId) {
+              const dx = touch.clientX - input.lastTouchX;
+              const dy = touch.clientY - input.lastTouchY;
+              input.lastTouchX = touch.clientX;
+              input.lastTouchY = touch.clientY;
+              camState.yaw -= dx * 0.006;
+              camState.pitch += dy * 0.005;
+              camState.pitch = Math.max(0.05, Math.min(0.65, camState.pitch));
+            }
+          }
+        }, { passive: false });
+
+        const endJoy = (e) => {
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === joyTouchId) {
+              joyTouchId = null;
+              input.forward = 0;
+              input.strafe = 0;
+              joystickKnob.style.transform = 'translate(0px, 0px)';
+            }
+            if (e.changedTouches[i].identifier === input.touchId) {
+              input.touchId = null;
+            }
+          }
+        };
+        window.addEventListener('touchend', endJoy);
+        window.addEventListener('touchcancel', endJoy);
+
+        function updateJoystick(cx, cy) {
+          const maxDist = 45;
+          let dx = cx - joyCenter.x;
+          let dy = cy - joyCenter.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > maxDist) {
+            dx = (dx / dist) * maxDist;
+            dy = (dy / dist) * maxDist;
+          }
+          joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+          input.forward = -dy / maxDist;
+          input.strafe = dx / maxDist;
+        }
+      }
+
+      if (canvas) {
+        canvas.addEventListener('touchstart', (e) => {
+          if (gameState.paused) return;
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            const touch = e.changedTouches[i];
+            if (touch.clientX > window.innerWidth / 2 && input.touchId === null) {
+              input.touchId = touch.identifier;
+              input.lastTouchX = touch.clientX;
+              input.lastTouchY = touch.clientY;
+            }
+          }
+        }, { passive: false });
+      }
+
+      safeAddListener('btn-mobile-interact', 'click', () => {
+        sfx.init();
+        triggerInteraction();
+      });
+    }
+
+    function updatePlayerMovement(delta) {
+      if (gameState.paused) {
+        playerLeftArm.rotation.x = 0;
+        playerRightArm.rotation.x = 0;
+        playerLeftLeg.rotation.x = 0;
+        playerRightLeg.rotation.x = 0;
+        return;
+      }
+
+      const moveForward = input.forward;
+      const moveStrafe = input.strafe;
+      const isMoving = Math.abs(moveForward) > 0.1 || Math.abs(moveStrafe) > 0.1;
+
+      if (isMoving) {
+        const sinYaw = Math.sin(camState.yaw);
+        const cosYaw = Math.cos(camState.yaw);
+
+        const moveX = (moveStrafe * cosYaw + moveForward * -sinYaw);
+        const moveZ = (-moveStrafe * sinYaw + moveForward * -cosYaw);
+
+        const moveLen = Math.sqrt(moveX * moveX + moveZ * moveZ);
+        const normX = (moveX / moveLen) * player.speed * delta;
+        const normZ = (moveZ / moveLen) * player.speed * delta;
+
+        const targetX = player.pos.x + normX;
+        if (!checkWallCollision(targetX, player.pos.z)) {
+          player.pos.x = targetX;
+        }
+
+        const targetZ = player.pos.z + normZ;
+        if (!checkWallCollision(player.pos.x, targetZ)) {
+          player.pos.z = targetZ;
+        }
+
+        const px = player.pos.x;
+        const pz = player.pos.z;
+        const mezH = 2.6;
+
+        // Pengesanan Zon Tangga Menegak (X: 7.2 hingga 8.8, Z: -1.5 hingga -0.4)
+        if (px >= 7.2 && px <= 8.8 && pz >= -1.5 && pz <= -0.4) {
+          if (moveForward > 0.1) {
+            // Bergerak ke hadapan menghala ke dalam mezanin (-Z): panjat naik
+            player.pos.y = Math.min(mezH, player.pos.y + delta * 3.8);
+            if (player.pos.y >= mezH - 0.2 && pz <= -0.95) {
+              player.pos.y = mezH;
+            }
+          } else if (moveForward < -0.1) {
+            // Bergerak ke belakang menghala ke galeri (+Z): panjat turun
+            player.pos.y = Math.max(0, player.pos.y - delta * 3.8);
+          }
+        } else if (px >= 4.7 && px <= 10.3 && pz < -1.0 && pz >= -9.2) {
+          // Di atas lantai mezanin
+          player.pos.y = mezH;
+        } else {
+          // Di lantai galeri bawah
+          player.pos.y = THREE.MathUtils.lerp(player.pos.y, 0, 0.25);
+        }
+
+        const targetAngle = Math.atan2(moveX, moveZ);
+        player.rotY = targetAngle;
+        playerGroup.rotation.y = targetAngle;
+
+        player.walkTime += delta * 11;
+        const swing = Math.sin(player.walkTime) * 0.6;
+        playerLeftArm.rotation.x = swing;
+        playerRightArm.rotation.x = -swing;
+        playerLeftLeg.rotation.x = -swing;
+        playerRightLeg.rotation.x = swing;
+
+        playerHead.position.y = 2.15 + Math.abs(Math.sin(player.walkTime * 2)) * 0.05;
+        sfx.step();
+      } else {
+        playerLeftArm.rotation.x = THREE.MathUtils.lerp(playerLeftArm.rotation.x, 0, 0.2);
+        playerRightArm.rotation.x = THREE.MathUtils.lerp(playerRightArm.rotation.x, 0, 0.2);
+        playerLeftLeg.rotation.x = THREE.MathUtils.lerp(playerLeftLeg.rotation.x, 0, 0.2);
+        playerRightLeg.rotation.x = THREE.MathUtils.lerp(playerRightLeg.rotation.x, 0, 0.2);
+        playerHead.position.y = 2.15;
+      }
+
+      playerGroup.position.copy(player.pos);
+
+      if (player.pos.z < -13.5 && gameState.currentRoom === 1) {
+        gameState.currentRoom = 2;
+        updateHUD();
+        if (!gameState.room2IntroShown) {
+          gameState.room2IntroShown = true;
+          showFeedbackModal({
+            title: "Bilik 2: Meja Peta Sejarah",
+            subtitle: "Misi Wilayah Bermula",
+            body: `<p class="font-semibold text-cyan-400 mb-1">“Label wilayah dalam arkib sudah tertanggal.”</p><p class="text-slate-300">Pulihkan dua panel untuk menunjukkan perbezaan antara Persekutuan Tanah Melayu pada 1957 dengan Malaysia ketika pembentukannya pada 1963.</p>`,
+            isSuccess: true,
+            showHints: false
+          });
+        }
+      } else if (player.pos.z >= -13.5 && gameState.currentRoom === 2) {
+        gameState.currentRoom = 1;
+        updateHUD();
+      }
+
+      camState.targetPos.copy(player.pos).add(new THREE.Vector3(0, camState.height, 0));
+      const camOffsetX = Math.sin(camState.yaw) * Math.cos(camState.pitch) * camState.distance;
+      const camOffsetY = Math.sin(camState.pitch) * camState.distance;
+      const camOffsetZ = Math.cos(camState.yaw) * Math.cos(camState.pitch) * camState.distance;
+
+      camera.position.set(
+        camState.targetPos.x + camOffsetX,
+        camState.targetPos.y + camOffsetY,
+        camState.targetPos.z + camOffsetZ
+      );
+      camera.lookAt(camState.targetPos);
+
+      checkNearbyInteractables();
+    }
+
+    function checkWallCollision(px, pz) {
+      const radius = player.radius;
+      if (pz + radius > 10.2 || pz - radius < -37.2) return true;
+
+      if (pz >= -11.0) {
+        if (px - radius < -10.2 || px + radius > 10.2) return true;
+        if (!gameState.room1DoorOpen && pz < -9.2 && Math.abs(px) < 1.6) return true;
+      } else if (pz < -11.0 && pz > -16.0) {
+        if (px - radius < -2.0 || px + radius > 2.0) return true;
+      } else {
+        if (px - radius < -10.2 || px + radius > 10.2) return true;
+        if (!gameState.room2DoorOpen && pz < -36.2 && Math.abs(px) < 1.6) return true;
+      }
+
+      const py = player.pos.y;
+      const playerBox = new THREE.Box3(
+        new THREE.Vector3(px - radius, py + 0.1, pz - radius),
+        new THREE.Vector3(px + radius, py + 2.2, pz + radius)
+      );
+
+      for (let i = 0; i < colliders.length; i++) {
+        if (colliders[i].intersectsBox(playerBox)) return true;
+      }
+      return false;
+    }
+
+    function checkNearbyInteractables() {
+      let closest = null;
+      let minDist = Infinity;
+
+      interactables.forEach(item => {
+        if (item.type === 'card') {
+          const cardData = gameState.cards.find(c => c.id === item.id);
+          if (cardData && cardData.status !== 'world') return;
+        }
+        const d = player.pos.distanceTo(item.pos);
+        if (d <= item.radius && d < minDist) {
+          minDist = d;
+          closest = item;
+        }
+      });
+
+      gameState.activeInteractive = closest;
+      const promptEl = document.getElementById('interaction-prompt');
+      const labelEl = document.getElementById('interaction-label');
+      const mobileBtnText = document.getElementById('mobile-action-text');
+
+      if (closest && !gameState.paused) {
+        let actionWord = "Periksa";
+        if (closest.type === 'bird') actionWord = "Bercakap dengan";
+        else if (closest.type === 'chest') actionWord = gameState.chestUnlocked ? (gameState.chestLootCollected ? "Periksa" : "Ambil Dari") : "Buka";
+        else if (closest.type === 'upper_board') actionWord = "Susun Gambar di";
+        else if (closest.type === 'ladder') actionWord = player.pos.y > 1.0 ? "Turun" : "Panjat";
+
+        if (labelEl) labelEl.textContent = `${actionWord} ${closest.name}`;
+        if (mobileBtnText) {
+          if (closest.type === 'bird') mobileBtnText.textContent = "BERCAKAP";
+          else if (closest.type === 'chest') mobileBtnText.textContent = gameState.chestUnlocked ? "AMBIL" : "BUKA PETI";
+          else if (closest.type === 'upper_board') mobileBtnText.textContent = "SUSUN";
+          else if (closest.type === 'ladder') mobileBtnText.textContent = player.pos.y > 1.0 ? "TURUN" : "PANJAT";
+          else mobileBtnText.textContent = "PERIKSA";
+        }
+
+        if (promptEl) {
+          promptEl.classList.remove('opacity-0', 'translate-y-4');
+          promptEl.classList.add('opacity-100', 'translate-y-0');
+        }
+      } else if (promptEl) {
+        promptEl.classList.add('opacity-0', 'translate-y-4');
+        promptEl.classList.remove('opacity-100', 'translate-y-0');
+        if (mobileBtnText) mobileBtnText.textContent = "PERIKSA";
+      }
+
+      if (gameState.room2DoorOpen && !gameState.completed) {
+        if (player.pos.z < -36.5 && Math.abs(player.pos.x) < 1.8) {
+          triggerGameComplete();
+        }
+      }
+    }
+
+    function triggerInteraction() {
+      if (!gameState.activeInteractive || gameState.paused) return;
+      const item = gameState.activeInteractive;
+
+      if (item.type === 'bird') {
+        openBirdDialogModal();
+      } else if (item.type === 'chest') {
+        if (!gameState.chestUnlocked) {
+          openChestPuzzleModal();
+        } else if (!gameState.chestLootCollected) {
+          openChestLootModal();
+        } else {
+          showFeedbackModal({
+            title: "Peti Arkib Kosong",
+            subtitle: "Kepingan Telah Dikumpulkan",
+            body: `Peti ini telah dikosongkan. Bawa kepingan arkib bergambar anda ke <strong>tingkat atas mezanin</strong> untuk disusun pada Papan Pameran.`,
+            isSuccess: true,
+            showHints: false
+          });
+        }
+      } else if (item.type === 'upper_board') {
+        if (!gameState.chestLootCollected) {
+          showFeedbackModal({
+            title: "Papan Memerlukan Kepingan Arkib",
+            subtitle: "Kepingan Belum Cukup",
+            body: `Papan garis masa ini memerlukan 4 Kepingan Arkib Bergambar. Sila selesaikan kunci dial pada <strong>Peti Arkib di tingkat bawah</strong> terlebih dahulu!`,
+            isSuccess: false,
+            showHints: false
+          });
+        } else {
+          openUpperBoardModal();
+        }
+      } else if (item.type === 'ladder') {
+        handleLadderInteraction();
+      } else if (item.type === 'card') {
+        openInspectCardModal(item.id);
+      } else if (item.type === 'panel') {
+        openPanelModal(item.year);
+      } else if (item.type === 'exit_door') {
+        handleDoorInspect();
+      } else if (item.type === 'clue') {
+        openInspectClueModal(item.id);
+      } else if (item.type === 'map_table') {
+        openMapTableModal();
+      } else if (item.type === 'room2_door') {
+        handleRoom2DoorInspect();
+      }
+    }
+
+    /* Helper: Memanjat atau Turun Tangga Menegak */
+    function handleLadderInteraction() {
+      const mezH = 2.6;
+      sfx.step();
+      if (player.pos.y < 1.0) {
+        // Panjat ke atas mezanin
+        player.pos.set(8.0, mezH, -1.8);
+        playerGroup.position.copy(player.pos);
+      } else {
+        // Turun ke lantai bawah galeri
+        player.pos.set(8.0, 0, 0.4);
+        playerGroup.position.copy(player.pos);
+      }
+    }
+
+    function openBirdDialogModal() {
+      gameState.hasTalkedToBird = true;
+      if (gameState.questStep === 0) {
+        gameState.questStep = 1;
+        updateObjectiveBanner();
+      }
+
+      setBirdDialogContent(
+        "“Chirp! Selamat kembali. Saya adalah Bayu, penjaga memori digital di sini. Rekod asas 1957 terkunci rapi dalam peti arkib di seberang sana. Apa yang ingin kamu tanyakan?”"
+      );
+
+      setGamePaused(true);
+      const modal = document.getElementById('modal-bird-dialog');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function setBirdDialogContent(text) {
+      const txtEl = document.getElementById('bird-dialog-text');
+      if (txtEl) txtEl.textContent = text;
+    }
+
+    function closeBirdDialogModal() {
+      const modal = document.getElementById('modal-bird-dialog');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      setGamePaused(false);
+    }
+
+    function openChestPuzzleModal() {
+      updateDialDisplay();
+      const fb = document.getElementById('chest-puzzle-feedback');
+      if (fb) fb.classList.add('hidden');
+
+      setGamePaused(true);
+      const modal = document.getElementById('modal-chest-puzzle');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeChestPuzzleModal() {
+      const modal = document.getElementById('modal-chest-puzzle');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      setGamePaused(false);
+    }
+
+    function updateDialDisplay() {
+      const d1 = document.getElementById('dial-val-1');
+      const d2 = document.getElementById('dial-val-2');
+      const d3 = document.getElementById('dial-val-3');
+
+      if (d1) d1.textContent = CHEST_DIAL_OPTIONS.dial1[gameState.chestDials.dial1];
+      if (d2) d2.textContent = CHEST_DIAL_OPTIONS.dial2[gameState.chestDials.dial2];
+      if (d3) d3.textContent = CHEST_DIAL_OPTIONS.dial3[gameState.chestDials.dial3];
+    }
+
+    function cycleDial(dialKey, delta) {
+      const total = CHEST_DIAL_OPTIONS[dialKey].length;
+      gameState.chestDials[dialKey] = (gameState.chestDials[dialKey] + delta + total) % total;
+      sfx.step();
+      updateDialDisplay();
+    }
+
+    function checkChestPuzzle() {
+      const isD1 = gameState.chestDials.dial1 === CHEST_SOLUTION.dial1;
+      const isD2 = gameState.chestDials.dial2 === CHEST_SOLUTION.dial2;
+      const isD3 = gameState.chestDials.dial3 === CHEST_SOLUTION.dial3;
+
+      const fb = document.getElementById('chest-puzzle-feedback');
+
+      if (isD1 && isD2 && isD3) {
+        gameState.chestUnlocked = true;
+        sfx.success();
+        
+        // Tutup modal puzzle tanpa mengaktifkan pergerakan serta-merta
+        const puzzleModal = document.getElementById('modal-chest-puzzle');
+        if (puzzleModal) {
+          puzzleModal.classList.add('hidden');
+          puzzleModal.classList.remove('flex');
+        }
+
+        // Animasi penutup peti berputar buka di dunia 3D
+        if (chestLidGroup) {
+          let rot = 0;
+          const openInt = setInterval(() => {
+            rot += 0.08;
+            chestLidGroup.rotation.x = -rot;
+            if (rot >= Math.PI * 0.45) clearInterval(openInt);
+          }, 30);
+        }
+
+        setTimeout(() => {
+          openChestLootModal();
+        }, 400);
+      } else {
+        sfx.error();
+        if (fb) {
+          fb.classList.remove('hidden');
+          fb.className = "p-3 rounded-xl text-xs mb-4 leading-relaxed border bg-amber-950/40 border-amber-500/50 text-amber-200 block";
+          fb.innerHTML = `<strong>Kombinasi kunci belum tepat.</strong><br>Petunjuk: Selaraskan peristiwa kemerdekaan pertama negara dengan tarikh 31 Ogos 1957 dan 11 negeri Semenanjung yang terlibat.`;
+        }
+      }
+    }
+
+    function openChestLootModal() {
+      setGamePaused(true);
+      const modal = document.getElementById('modal-chest-loot');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeChestLootModal() {
+      const modal = document.getElementById('modal-chest-loot');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      setGamePaused(false);
+    }
+
+    function collectChestLoot() {
+      gameState.chestLootCollected = true;
+      gameState.questStep = 3;
+      updateObjectiveBanner();
+
+      if (chestLootMesh) chestLootMesh.visible = false;
+      sfx.pickup();
+      closeChestLootModal();
+
+      showFeedbackModal({
+        title: "Kepingan Disimpan!",
+        subtitle: "4 Kepingan Arkib dalam Inventori",
+        body: `Kepingan arkib bergambar berjaya diambil. Sekarang, naik tangga kayu ke <strong>tingkat atas mezanin</strong> untuk menyusunnya pada Papan Sejarah!`,
+        isSuccess: true,
+        showHints: false
+      });
+    }
+
+    function openUpperBoardModal() {
+      renderTimelineCards();
+      const fb = document.getElementById('upper-board-feedback');
+      if (fb) fb.classList.add('hidden');
+
+      setGamePaused(true);
+      const modal = document.getElementById('modal-upper-board');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeUpperBoardModal() {
+      const modal = document.getElementById('modal-upper-board');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      setGamePaused(false);
+    }
+
+    function renderTimelineCards() {
+      const container = document.getElementById('timeline-cards-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      gameState.timelineOrder.forEach((cardId, index) => {
+        const cardData = TIMELINE_CARDS_DATA.find(c => c.id === cardId);
+        if (!cardData) return;
+
+        const el = document.createElement('div');
+        el.className = "bg-slate-950/80 border border-slate-700/80 p-3 rounded-2xl flex items-center justify-between gap-3 shadow-md";
+        el.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="w-7 h-7 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center font-bold text-xs">${index + 1}</span>
+            <div class="text-2xl">${cardData.icon}</div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-xs text-white">${cardData.title}</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${cardData.yearBadge === '1957' ? 'bg-blue-500/20 text-blue-300' : 'bg-amber-500/20 text-amber-300'}">${cardData.yearBadge}</span>
+              </div>
+              <p class="text-[11px] text-slate-300 italic mt-0.5">${cardData.desc}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0 ${gameState.upperBoardSolved ? 'hidden' : ''}">
+            <button class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold flex items-center justify-center text-xs" onclick="shiftTimelineCard(${index}, -1)" ${index === 0 ? 'disabled class="opacity-30"' : ''}>▲</button>
+            <button class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold flex items-center justify-center text-xs" onclick="shiftTimelineCard(${index}, 1)" ${index === 3 ? 'disabled class="opacity-30"' : ''}>▼</button>
+          </div>
+        `;
+        container.appendChild(el);
+      });
+
+      const st = document.getElementById('upper-board-status');
+      if (st) {
+        st.textContent = gameState.upperBoardSolved ? "✓ Garis Masa Selesai" : "Susun Kronologi";
+        st.className = gameState.upperBoardSolved ? "text-xs font-bold text-emerald-400" : "text-xs font-bold text-amber-400";
+      }
+    }
+
+    window.shiftTimelineCard = function(index, delta) {
+      if (gameState.upperBoardSolved) return;
+      const targetIndex = index + delta;
+      if (targetIndex < 0 || targetIndex >= gameState.timelineOrder.length) return;
+
+      const temp = gameState.timelineOrder[index];
+      gameState.timelineOrder[index] = gameState.timelineOrder[targetIndex];
+      gameState.timelineOrder[targetIndex] = temp;
+
+      sfx.step();
+      renderTimelineCards();
+    };
+
+    function checkUpperBoard() {
+      if (gameState.upperBoardSolved) return;
+      const expectedOrder = ["T1", "T2", "T3", "T4"];
+      const isCorrect = gameState.timelineOrder.every((id, idx) => id === expectedOrder[idx]);
+
+      const fb = document.getElementById('upper-board-feedback');
+      if (fb) fb.classList.remove('hidden');
+
+      if (isCorrect) {
+        gameState.upperBoardSolved = true;
+        gameState.questStep = 4;
+        updateObjectiveBanner();
+        sfx.success();
+
+        if (beaconBeamMesh) beaconBeamMesh.visible = true;
+
+        if (fb) {
+          fb.className = "p-3 rounded-xl text-xs mb-3 border bg-emerald-950/50 border-emerald-500/50 text-emerald-300 block";
+          fb.innerHTML = `<strong>Tepat Sekali!</strong> Susunan garis masa daripada Kemerdekaan Persekutuan Tanah Melayu (1957) hingga Pembentukan Malaysia (1963) telah sempurna. Mekanisme arkib mengaktifkan pintu keluar!`;
+        }
+
+        renderTimelineCards();
+
+        // Buka pintu keluar arkib
+        setTimeout(() => {
+          closeUpperBoardModal();
+          triggerExitDoorOpenAnimation();
+        }, 1200);
+      } else {
+        sfx.error();
+        if (fb) {
+          fb.className = "p-3 rounded-xl text-xs mb-3 border bg-amber-950/40 border-amber-500/50 text-amber-200 block";
+          fb.innerHTML = `<strong>Susunan belum tepat.</strong><br>Petunjuk: Letakkan peristiwa Kemerdekaan 11 negeri Tanah Melayu (1957) di bahagian atas, diikuti dengan rundingan dan pemasyhuran Malaysia bersama Sabah, Sarawak & Singapura (1963).`;
+        }
+      }
+    }
+
+    function updateObjectiveBanner() {
+      const bannerTxt = document.getElementById('hud-objective-text');
+      if (!bannerTxt) return;
+
+      if (!gameState.hasTalkedToBird) {
+        bannerTxt.textContent = "Bercakap dengan Burung Penjaga berhampiran pintu masuk.";
+      } else if (!gameState.chestUnlocked) {
+        bannerTxt.textContent = "Selesaikan mini puzzle 3 dial pada Peti Arkib di sebelah kiri bilik.";
+      } else if (!gameState.chestLootCollected) {
+        bannerTxt.textContent = "Ambil Kepingan Arkib Bergambar dari dalam Peti yang telah terbuka.";
+      } else if (!gameState.upperBoardSolved) {
+        bannerTxt.textContent = "Naik tangga mezanin ke tingkat atas dan susun Papan Garis Masa Sejarah.";
+      } else if (!gameState.completed) {
+        bannerTxt.textContent = "Mekanisme selesai! Bawa watak melangkah keluar melalui Pintu Arkib.";
+      } else {
+        bannerTxt.textContent = "Misi arkib berjaya diselesaikan sepenuhnya!";
+      }
+    }
+
+    function handleDoorInspect() {
+      if (gameState.upperBoardSolved || gameState.room1DoorOpen) {
+        showFeedbackModal({
+          title: "Laluan Terbuka",
+          subtitle: "Galeri Dua Detik Selesai",
+          body: `Laluan ke <strong>Bilik 2: Meja Peta Sejarah</strong> telah dibuka. Melangkah terus ke hadapan untuk meneroka.`,
+          isSuccess: true,
+          showHints: false
+        });
+      } else {
+        showFeedbackModal({
+          title: "Pintu Keluar Arkib Terkunci",
+          subtitle: "Mekanisme Belum Aktif",
+          body: `Pintu keselamatan utama bilik ini memerlukan anda menyelesaikan <strong>Papan Garis Masa di tingkat atas mezanin</strong> terlebih dahulu.`,
+          isSuccess: false,
+          showHints: false
+        });
+      }
+    }
+
+    function handleRoom2DoorInspect() {
+      if (gameState.room2DoorOpen) {
+        triggerGameComplete();
+        return;
+      }
+      const pA = ROOM2_PANELS_DATA.A.completed;
+      const pB = ROOM2_PANELS_DATA.B.completed;
+      if (!pA || !pB) {
+        showFeedbackModal({
+          title: "Pintu Keluar Utama Terkunci",
+          subtitle: `Indikator Wilayah: ${(pA ? 1 : 0) + (pB ? 1 : 0)}/2`,
+          body: `Pintu keselamatan utama bilik arkib memerlukan kedua-dua panel pada <strong>Meja Peta Sejarah</strong> dipulihkan sebelum jalan keluar dibuka.`,
+          isSuccess: false,
+          showHints: false
+        });
+      } else if (!gameState.closingChallengeCompleted) {
+        openClosingChallengeModal();
+      }
+    }
+
+    function openInspectCardModal(cardId) {
+      const card = gameState.cards.find(c => c.id === cardId);
+      if (!card || card.status !== 'world') return;
+
+      gameState.activeCardForInspect = card;
+      const idEl = document.getElementById('inspect-card-id');
+      const titleEl = document.getElementById('inspect-card-title');
+      const textEl = document.getElementById('inspect-card-text');
+
+      if (idEl) idEl.textContent = `FAIL REKOD ${card.id}`;
+      if (titleEl) titleEl.textContent = card.title;
+      if (textEl) textEl.textContent = `“${card.text}”`;
+
+      setGamePaused(true);
+      const modal = document.getElementById('modal-card-inspect');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeInspectCardModal() {
+      const modal = document.getElementById('modal-card-inspect');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      gameState.activeCardForInspect = null;
+      setGamePaused(false);
+    }
+
+    function saveActiveCardToInventory() {
+      if (!gameState.activeCardForInspect) return;
+      const card = gameState.activeCardForInspect;
+      card.status = 'inventory';
+
+      if (card.worldMesh) card.worldMesh.visible = false;
+      sfx.pickup();
+      updateHUD();
+      closeInspectCardModal();
+
+      showFeedbackModal({
+        title: "Bukti Disimpan",
+        subtitle: `Fail ${card.id} kini berada dalam inventori anda`,
+        body: `Anda telah mengambil <strong>${card.title}</strong>. Bawa fail ini ke <strong>Panel 1957</strong> atau <strong>Panel 1963</strong> untuk dikelaskan.`,
+        isSuccess: true,
+        showHints: false
+      });
+    }
+
+    function openPanelModal(year) {
+      gameState.activePanelYear = year;
+      const is1957 = year === '1957';
+      const container = document.getElementById('panel-modal-container');
+      const badge = document.getElementById('panel-modal-badge');
+      const title = document.getElementById('panel-modal-title');
+      const desc = document.getElementById('panel-modal-desc');
+
+      if (is1957) {
+        if (container) container.className = "max-w-2xl w-full bg-slate-900 border-2 border-blue-500 rounded-3xl p-5 sm:p-7 shadow-2xl max-h-[90vh] flex flex-col overflow-hidden";
+        if (badge) {
+          badge.className = "text-xs uppercase tracking-widest font-bold block text-blue-400";
+          badge.textContent = "GALERI PERISTIWA 1957";
+        }
+        if (title) title.textContent = "PANEL 1957: KEMERDEKAAN";
+        if (desc) desc.textContent = "Konteks: Kemerdekaan Persekutuan Tanah Melayu (11 Negeri Semenanjung)";
+      } else {
+        if (container) container.className = "max-w-2xl w-full bg-slate-900 border-2 border-amber-500 rounded-3xl p-5 sm:p-7 shadow-2xl max-h-[90vh] flex flex-col overflow-hidden";
+        if (badge) {
+          badge.className = "text-xs uppercase tracking-widest font-bold block text-amber-400";
+          badge.textContent = "GALERI PERISTIWA 1963";
+        }
+        if (title) title.textContent = "PANEL 1963: MALAYSIA";
+        if (desc) desc.textContent = "Konteks: Pembentukan Persekutuan Malaysia (Tanah Melayu, Sabah, Sarawak & Singapura)";
+      }
+
+      renderPanelModalContent(year);
+      setGamePaused(true);
+      const modal = document.getElementById('modal-panel-view');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function renderPanelModalContent(year) {
+      const restoredListEl = document.getElementById('panel-restored-slots');
+      if (restoredListEl) {
+        restoredListEl.innerHTML = '';
+        const placedOnThisPanel = gameState.cards.filter(c => c.status === 'placed' && c.placedPanel === year);
+
+        for (let i = 0; i < 3; i++) {
+          const slotCard = placedOnThisPanel[i];
+          const slotEl = document.createElement('div');
+          if (slotCard) {
+            slotEl.className = "bg-slate-950/80 border border-emerald-500/60 p-3 rounded-2xl flex flex-col justify-between";
+            slotEl.innerHTML = `
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[10px] font-bold text-emerald-400">SLOT ${i + 1}: KAD ${slotCard.id}</span>
+                <span class="text-xs text-emerald-400">✓ Sah</span>
+              </div>
+              <p class="text-xs text-slate-300 italic line-clamp-2">“${slotCard.text}”</p>
+            `;
+          } else {
+            slotEl.className = "bg-slate-950/40 border border-dashed border-slate-700 p-3 rounded-2xl flex flex-col items-center justify-center text-center min-h-[70px]";
+            slotEl.innerHTML = `
+              <span class="text-[11px] text-slate-500 font-semibold">Slot ${i + 1} Kosong</span>
+              <span class="text-[10px] text-slate-600">Perlu Bukti ${year}</span>
+            `;
+          }
+          restoredListEl.appendChild(slotEl);
+        }
+      }
+
+      const inventoryListEl = document.getElementById('panel-inventory-list');
+      if (inventoryListEl) {
+        inventoryListEl.innerHTML = '';
+        const availableCards = gameState.cards.filter(c => c.status === 'inventory');
+
+        if (availableCards.length === 0) {
+          inventoryListEl.innerHTML = `
+            <div class="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl text-center text-xs text-slate-400">
+              Tiada fail bukti dalam inventori anda. Sila cari dan kutip fail rekod yang masih berada di meja arkib.
+            </div>
+          `;
+        } else {
+          availableCards.forEach(card => {
+            const itemEl = document.createElement('div');
+            itemEl.className = "bg-slate-950/80 hover:bg-slate-800/80 border border-slate-700/80 p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all";
+            itemEl.innerHTML = `
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-500/30">FAIL ${card.id}</span>
+                  <span class="text-xs font-semibold text-slate-200">${card.title}</span>
+                </div>
+                <p class="text-xs text-slate-300 italic">“${card.text}”</p>
+              </div>
+              <button class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl shrink-0 transition-transform active:scale-95 flex items-center justify-center gap-1.5" onclick="submitCardToPanel('${card.id}', '${year}')">
+                <span>Letak pada Panel ${year}</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </button>
+            `;
+            inventoryListEl.appendChild(itemEl);
+          });
+        }
+      }
+    }
+
+    function closePanelModal() {
+      const modal = document.getElementById('modal-panel-view');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      gameState.activePanelYear = null;
+      setGamePaused(false);
+    }
+
+    window.submitCardToPanel = function(cardId, selectedPanelYear) {
+      const card = gameState.cards.find(c => c.id === cardId);
+      if (!card || card.status !== 'inventory') return;
+
+      gameState.attemptCounts++;
+      if (gameState.firstAttempts[card.id] === undefined) {
+        gameState.firstAttempts[card.id] = (card.category === selectedPanelYear);
+      }
+
+      closePanelModal();
+
+      if (card.category === selectedPanelYear) {
+        card.status = 'placed';
+        card.placedPanel = selectedPanelYear;
+        sfx.success();
+        updateHUD();
+        updateDoorIndicators();
+
+        showFeedbackModal({
+          title: "Bukti Berjaya Dipulihkan!",
+          subtitle: `Padanan Tepat untuk Panel ${selectedPanelYear}`,
+          body: `<p class="font-semibold text-emerald-400 mb-1">“Bukti berjaya dipulihkan.”</p><p class="text-slate-300">${card.explanation}</p>`,
+          isSuccess: true,
+          showHints: false
+        });
+
+        if (countRestoredCards() === 6) {
+          triggerExitDoorOpenAnimation();
+        }
+      } else {
+        sfx.error();
+        gameState.activeFailedCard = card;
+        gameState.hintLevel = 0;
+
+        showFeedbackModal({
+          title: "Belum Sepadan",
+          subtitle: `Padanan Tidak Tepat untuk Panel ${selectedPanelYear}`,
+          body: `<p class="font-semibold text-rose-400 mb-1">“Bukti ini belum sepadan. Semak nama peristiwa, tarikh atau wilayah yang dinyatakan.”</p><p class="text-slate-400 text-xs">Fail ${card.id} telah dikembalikan ke Buku Bukti anda. Sila teliti perincian bukti sebelum membuat cubaan semula.</p>`,
+          isSuccess: false,
+          showHints: true,
+          card: card
+        });
+      }
+    };
+
+    function showFeedbackModal({ title, subtitle, body, isSuccess, showHints, card }) {
+      const iconBox = document.getElementById('feedback-icon');
+      const box = document.getElementById('feedback-box');
+      const titleEl = document.getElementById('feedback-title');
+      const subtitleEl = document.getElementById('feedback-subtitle');
+      const bodyEl = document.getElementById('feedback-body');
+      const hintsSec = document.getElementById('feedback-hints-section');
+
+      if (titleEl) titleEl.textContent = title;
+      if (subtitleEl) subtitleEl.textContent = subtitle;
+      if (bodyEl) bodyEl.innerHTML = body;
+
+      if (isSuccess) {
+        if (box) box.className = "max-w-md w-full bg-slate-900 border-2 border-emerald-500 rounded-3xl p-6 shadow-2xl relative";
+        if (iconBox) {
+          iconBox.className = "w-12 h-12 rounded-2xl flex items-center justify-center text-2xl font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+          iconBox.textContent = "✓";
+        }
+        if (hintsSec) hintsSec.classList.add('hidden');
+      } else {
+        if (box) box.className = "max-w-md w-full bg-slate-900 border-2 border-amber-500 rounded-3xl p-6 shadow-2xl relative";
+        if (iconBox) {
+          iconBox.className = "w-12 h-12 rounded-2xl flex items-center justify-center text-2xl font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40";
+          iconBox.textContent = "!";
+        }
+        if (showHints && card && hintsSec) {
+          hintsSec.classList.remove('hidden');
+          setupTieredHints(card);
+        } else if (hintsSec) {
+          hintsSec.classList.add('hidden');
+        }
+      }
+
+      setGamePaused(true);
+      const modal = document.getElementById('modal-feedback');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function setupTieredHints(card) {
+      const btnH1 = document.getElementById('btn-show-hint-1');
+      const textH1 = document.getElementById('hint-1-text');
+      const btnH2 = document.getElementById('btn-show-hint-2');
+      const textH2 = document.getElementById('hint-2-text');
+      const boxH2 = document.getElementById('hint-2-box');
+
+      if (!btnH1 || !textH1 || !btnH2 || !textH2 || !boxH2) return;
+
+      textH1.classList.add('hidden');
+      textH1.textContent = card.hints[0];
+      btnH1.disabled = false;
+      btnH1.textContent = "Buka Petunjuk 1";
+      btnH1.className = "text-amber-400 hover:text-amber-300 font-bold text-[11px] bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/30";
+
+      textH2.classList.add('hidden');
+      textH2.textContent = card.hints[1];
+      btnH2.disabled = true;
+      btnH2.textContent = "Perlu Petunjuk 1 Dulu";
+      btnH2.className = "text-slate-400 font-bold text-[11px] bg-slate-800 px-2 py-0.5 rounded border border-slate-700 cursor-not-allowed";
+      boxH2.className = "bg-slate-800/40 border border-slate-700/60 rounded-xl p-3 text-xs opacity-60";
+
+      btnH1.onclick = () => {
+        textH1.classList.remove('hidden');
+        btnH1.disabled = true;
+        btnH1.textContent = "Dibuka";
+        btnH1.className = "text-slate-400 font-bold text-[11px] bg-slate-800 px-2 py-0.5 rounded";
+        gameState.hintsUsed++;
+
+        btnH2.disabled = false;
+        btnH2.textContent = "Buka Petunjuk 2";
+        btnH2.className = "text-cyan-400 hover:text-cyan-300 font-bold text-[11px] bg-cyan-400/10 px-2 py-0.5 rounded border border-cyan-400/30 cursor-pointer";
+        boxH2.className = "bg-slate-800/40 border border-slate-700/60 rounded-xl p-3 text-xs opacity-100";
+      };
+
+      btnH2.onclick = () => {
+        textH2.classList.remove('hidden');
+        btnH2.disabled = true;
+        btnH2.textContent = "Dibuka";
+        btnH2.className = "text-slate-400 font-bold text-[11px] bg-slate-800 px-2 py-0.5 rounded";
+        gameState.hintsUsed++;
+      };
+    }
+
+    function closeFeedbackModal() {
+      const modal = document.getElementById('modal-feedback');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      setGamePaused(false);
+    }
+
+    function updateDoorIndicators() {
+      const restored = countRestoredCards();
+      exitIndicators.forEach((gem, idx) => {
+        if (idx < restored) {
+          gem.material.color.setHex(0x38bdf8);
+          gem.material.emissive.setHex(0x0284c7);
+          gem.material.emissiveIntensity = 0.8;
+        } else {
+          gem.material.color.setHex(0x334155);
+          gem.material.emissive.setHex(0x0f172a);
+          gem.material.emissiveIntensity = 0.1;
+        }
+      });
+    }
+
+    function triggerExitDoorOpenAnimation() {
+      gameState.room1DoorOpen = true;
+      sfx.doorRumble();
+      const colIdx = colliders.indexOf(exitDoorGroup.collider);
+      if (colIdx > -1) colliders.splice(colIdx, 1);
+
+      let elev = 2.0;
+      const slideInterval = setInterval(() => {
+        elev += 0.08;
+        if (exitDoorGroup.doorSlab) {
+          exitDoorGroup.doorSlab.position.y = elev;
+        }
+        if (elev >= 5.5) {
+          clearInterval(slideInterval);
+        }
+      }, 30);
+
+      setTimeout(() => {
+        exitIndicators.forEach(gem => {
+          gem.material.color.setHex(0x10b981);
+          gem.material.emissive.setHex(0x059669);
+          gem.material.emissiveIntensity = 1.0;
+        });
+      }, 500);
+
+      setTimeout(() => {
+        setGamePaused(true);
+        const modal = document.getElementById('modal-room1-complete');
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        }
+      }, 1200);
+    }
+
+    function openInspectClueModal(clueId) {
+      const clue = gameState.clues.find(c => c.id === clueId);
+      if (!clue) return;
+      gameState.activeClueForInspect = clue;
+      clue.collected = true;
+
+      const idEl = document.getElementById('clue-modal-id');
+      const titleEl = document.getElementById('clue-modal-title');
+      const textEl = document.getElementById('clue-modal-text');
+
+      if (idEl) idEl.textContent = `FAIL PETUNJUK ${clue.id}`;
+      if (titleEl) titleEl.textContent = clue.title;
+      if (textEl) textEl.textContent = `“${clue.text}”`;
+
+      sfx.pickup();
+      setGamePaused(true);
+      const modal = document.getElementById('modal-room2-clue');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeInspectClueModal() {
+      const modal = document.getElementById('modal-room2-clue');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      gameState.activeClueForInspect = null;
+      setGamePaused(false);
+    }
+
+    function openMapTableModal() {
+      renderMapPanel(gameState.activeMapTab);
+      setGamePaused(true);
+      const modal = document.getElementById('modal-map-table');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeMapTableModal() {
+      const modal = document.getElementById('modal-map-table');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      setGamePaused(false);
+    }
+
+    function renderMapPanel(panelKey) {
+      gameState.activeMapTab = panelKey;
+      const data = ROOM2_PANELS_DATA[panelKey];
+
+      const btnA = document.getElementById('btn-tab-panel-a');
+      const btnB = document.getElementById('btn-tab-panel-b');
+      const badgeA = document.getElementById('badge-tab-a');
+      const badgeB = document.getElementById('badge-tab-b');
+
+      if (badgeA) {
+        badgeA.textContent = ROOM2_PANELS_DATA.A.completed ? "Selesai ✓" : "Belum";
+        badgeA.className = ROOM2_PANELS_DATA.A.completed ? "text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold" : "text-[10px] px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-normal";
+      }
+      if (badgeB) {
+        badgeB.textContent = ROOM2_PANELS_DATA.B.completed ? "Selesai ✓" : "Belum";
+        badgeB.className = ROOM2_PANELS_DATA.B.completed ? "text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold" : "text-[10px] px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-normal";
+      }
+
+      if (panelKey === 'A') {
+        if (btnA) btnA.className = "flex-1 py-2 px-3 rounded-xl font-bold text-xs sm:text-sm border transition-all flex items-center justify-center gap-1.5 bg-blue-600/30 text-blue-300 border-blue-500";
+        if (btnB) btnB.className = "flex-1 py-2 px-3 rounded-xl font-bold text-xs sm:text-sm border transition-all flex items-center justify-center gap-1.5 bg-slate-800/60 text-slate-400 border-slate-700";
+      } else {
+        if (btnB) btnB.className = "flex-1 py-2 px-3 rounded-xl font-bold text-xs sm:text-sm border transition-all flex items-center justify-center gap-1.5 bg-amber-600/30 text-amber-300 border-amber-500";
+        if (btnA) btnA.className = "flex-1 py-2 px-3 rounded-xl font-bold text-xs sm:text-sm border transition-all flex items-center justify-center gap-1.5 bg-slate-800/60 text-slate-400 border-slate-700";
+      }
+
+      const titleEl = document.getElementById('map-panel-title');
+      const questionEl = document.getElementById('map-panel-question');
+      const statusEl = document.getElementById('map-panel-status');
+
+      if (titleEl) titleEl.textContent = data.title;
+      if (questionEl) questionEl.textContent = `“${data.question}”`;
+      if (statusEl) {
+        statusEl.textContent = data.completed ? "✓ Panel Dipulihkan" : "Pilih label wilayah";
+        statusEl.className = data.completed ? "text-[11px] font-bold text-emerald-400" : "text-[11px] font-semibold text-amber-400";
+      }
+
+      const optionsContainer = document.getElementById('map-options-container');
+      if (optionsContainer) {
+        optionsContainer.innerHTML = '';
+        const currentSelected = gameState.panelSelections[panelKey];
+
+        data.options.forEach((optText) => {
+          const isChecked = currentSelected.includes(optText);
+          const card = document.createElement('div');
+          card.className = `p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+            isChecked
+              ? 'bg-amber-500/15 border-amber-400 text-white shadow-md'
+              : 'bg-slate-900 border-slate-700/80 text-slate-300 hover:border-slate-500'
+          } ${data.completed ? 'pointer-events-none opacity-80' : ''}`;
+
+          card.innerHTML = `
+            <div class="flex items-center gap-2.5">
+              <span class="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold ${
+                isChecked ? 'bg-amber-400 text-slate-950' : 'border border-slate-600 text-transparent'
+              }">✓</span>
+              <span class="text-xs sm:text-sm font-medium">${optText}</span>
+            </div>
+          `;
+
+          card.addEventListener('click', () => {
+            if (data.completed) return;
+            toggleMapOption(panelKey, optText);
+          });
+
+          optionsContainer.appendChild(card);
+        });
+      }
+
+      updateSchematicSVG(panelKey);
+
+      const feedbackBox = document.getElementById('map-feedback-box');
+      const submitBtn = document.getElementById('btn-submit-map-panel');
+
+      if (data.completed) {
+        if (feedbackBox) {
+          feedbackBox.className = "p-3 rounded-xl text-xs leading-relaxed border bg-emerald-950/40 border-emerald-500/50 text-emerald-300 block";
+          feedbackBox.innerHTML = `<strong>Panel Selesai:</strong> ${data.explanation}`;
+        }
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.className = "bg-slate-800 text-slate-500 font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl cursor-not-allowed";
+        }
+      } else {
+        if (feedbackBox) feedbackBox.classList.add('hidden');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.className = "bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm px-5 py-2.5 rounded-xl transition-all shadow-lg active:scale-95 flex items-center gap-1.5";
+        }
+      }
+    }
+
+    function toggleMapOption(panelKey, optText) {
+      const list = gameState.panelSelections[panelKey];
+      const idx = list.indexOf(optText);
+      if (idx > -1) {
+        list.splice(idx, 1);
+      } else {
+        list.push(optText);
+      }
+      renderMapPanel(panelKey);
+    }
+
+    function updateSchematicSVG(panelKey) {
+      const selected = gameState.panelSelections[panelKey];
+      const hasPTM = selected.some(s => s.toLowerCase().includes("tanah melayu"));
+      const hasSG = selected.includes("Singapura");
+      const hasSWK = selected.includes("Sarawak");
+      const hasSBH = selected.includes("Sabah");
+
+      setSvgZone('ptm', hasPTM);
+      setSvgZone('sg', hasSG);
+      setSvgZone('swk', hasSWK);
+      setSvgZone('sbh', hasSBH);
+    }
+
+    function setSvgZone(key, isActive) {
+      const rect = document.getElementById(`svg-rect-${key}`);
+      const check = document.getElementById(`svg-check-${key}`);
+      if (!rect || !check) return;
+      if (isActive) {
+        rect.setAttribute('fill', '#0284c7');
+        rect.setAttribute('stroke', '#38bdf8');
+        check.setAttribute('fill', '#38bdf8');
+      } else {
+        rect.setAttribute('fill', '#1e293b');
+        rect.setAttribute('stroke', '#475569');
+        check.setAttribute('fill', '#334155');
+      }
+    }
+
+    function submitMapPanelSelection() {
+      const panelKey = gameState.activeMapTab;
+      const data = ROOM2_PANELS_DATA[panelKey];
+      if (data.completed) return;
+
+      gameState.room2Attempts++;
+      const userSel = [...gameState.panelSelections[panelKey]].sort();
+      const correctSel = [...data.correct].sort();
+
+      const isCorrect = userSel.length === correctSel.length && userSel.every((val, idx) => val === correctSel[idx]);
+
+      if (gameState.room2FirstAttempts[panelKey] === undefined) {
+        gameState.room2FirstAttempts[panelKey] = isCorrect;
+      }
+
+      const feedbackBox = document.getElementById('map-feedback-box');
+      if (feedbackBox) feedbackBox.classList.remove('hidden');
+
+      if (isCorrect) {
+        data.completed = true;
+        sfx.success();
+        updateRoom2DoorIndicators();
+        renderMapPanel(panelKey);
+
+        if (feedbackBox) {
+          feedbackBox.className = "p-3 rounded-xl text-xs leading-relaxed border bg-emerald-950/40 border-emerald-500/50 text-emerald-300 block";
+          feedbackBox.innerHTML = `<strong>Tepat!</strong> ${data.explanation}`;
+        }
+
+        if (ROOM2_PANELS_DATA.A.completed && ROOM2_PANELS_DATA.B.completed) {
+          setTimeout(() => {
+            closeMapTableModal();
+            openClosingChallengeModal();
+          }, 1200);
+        }
+      } else {
+        sfx.error();
+        if (feedbackBox) {
+          feedbackBox.className = "p-3 rounded-xl text-xs leading-relaxed border bg-amber-950/40 border-amber-500/50 text-amber-200 block";
+          feedbackBox.innerHTML = `<strong>Susunan belum tepat.</strong> Semak tarikh panel dan bukti wilayah dalam Buku Bukti.`;
+        }
+      }
+    }
+
+    function updateRoom2DoorIndicators() {
+      const indCount = (ROOM2_PANELS_DATA.A.completed ? 1 : 0) + (ROOM2_PANELS_DATA.B.completed ? 1 : 0);
+      room2Indicators.forEach((gem, idx) => {
+        if (idx < indCount) {
+          gem.material.color.setHex(0x38bdf8);
+          gem.material.emissive.setHex(0x0284c7);
+          gem.material.emissiveIntensity = 0.8;
+        } else {
+          gem.material.color.setHex(0x334155);
+          gem.material.emissive.setHex(0x0f172a);
+          gem.material.emissiveIntensity = 0.1;
+        }
+      });
+    }
+
+    function openClosingChallengeModal() {
+      setGamePaused(true);
+      const feedbackEl = document.getElementById('closing-challenge-feedback');
+      if (feedbackEl) feedbackEl.classList.add('hidden');
+      document.querySelectorAll('input[name="closing_choice"]').forEach(el => el.checked = false);
+
+      const modal = document.getElementById('modal-closing-challenge');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeClosingChallengeModal() {
+      const modal = document.getElementById('modal-closing-challenge');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      setGamePaused(false);
+    }
+
+    function submitClosingChallenge() {
+      const selected = document.querySelector('input[name="closing_choice"]:checked');
+      const feedbackEl = document.getElementById('closing-challenge-feedback');
+
+      if (!selected) {
+        if (feedbackEl) {
+          feedbackEl.classList.remove('hidden');
+          feedbackEl.className = "mb-4 p-3 rounded-xl text-xs bg-amber-950/50 border border-amber-500/50 text-amber-200";
+          feedbackEl.textContent = "Sila pilih salah satu pilihan di atas sebelum menghantar.";
+        }
+        return;
+      }
+
+      gameState.room2Attempts++;
+      const userChoice = selected.value;
+      const isCorrect = userChoice === ROOM2_CLOSING_DATA.correctChoice;
+
+      if (gameState.room2FirstAttempts.closing === undefined) {
+        gameState.room2FirstAttempts.closing = isCorrect;
+      }
+
+      if (isCorrect) {
+        gameState.closingChallengeCompleted = true;
+        closeClosingChallengeModal();
+        sfx.success();
+        triggerRoom2ExitDoorOpenAnimation();
+      } else {
+        sfx.error();
+        if (feedbackEl) {
+          feedbackEl.classList.remove('hidden');
+          feedbackEl.className = "mb-4 p-3 rounded-xl text-xs bg-rose-950/50 border border-rose-500/50 text-rose-200";
+          feedbackEl.innerHTML = `Jawapan belum tepat. Sila baca semula <strong>Fail 4</strong> dalam Buku Bukti dan mencuba lagi.`;
+        }
+      }
+    }
+
+    function triggerRoom2ExitDoorOpenAnimation() {
+      gameState.room2DoorOpen = true;
+      sfx.doorRumble();
+
+      const colIdx = colliders.indexOf(room2DoorGroup.collider);
+      if (colIdx > -1) colliders.splice(colIdx, 1);
+
+      let elev = 2.0;
+      const slideInt = setInterval(() => {
+        elev += 0.08;
+        if (room2DoorGroup.doorSlab) {
+          room2DoorGroup.doorSlab.position.y = elev;
+        }
+        if (elev >= 5.5) {
+          clearInterval(slideInt);
+        }
+      }, 30);
+
+      setTimeout(() => {
+        room2Indicators.forEach(gem => {
+          gem.material.color.setHex(0x10b981);
+          gem.material.emissive.setHex(0x059669);
+          gem.material.emissiveIntensity = 1.0;
+        });
+      }, 500);
+
+      setTimeout(() => {
+        showFeedbackModal({
+          title: "PINTU KELUAR ARKIB DIBUKA!",
+          subtitle: "Cabaran Penutup Berjaya Diselesaikan",
+          body: `<p class="text-emerald-400 font-bold mb-1">${ROOM2_CLOSING_DATA.explanation}</p><p class="text-slate-200">Pintu keluar utama arkib kini terbuka sepenuhnya. Bawa watak anda melangkah masuk ke pintu di hujung bilik untuk menamatkan misi arkib.</p>`,
+          isSuccess: true,
+          showHints: false
+        });
+      }, 1000);
+    }
+
+    function triggerGameComplete() {
+      if (gameState.completed) return;
+      gameState.completed = true;
+      gameState.endTime = Date.now();
+      clearInterval(gameState.timerInterval);
+      setGamePaused(true);
+
+      const totalSeconds = Math.floor((gameState.endTime - gameState.startTime) / 1000);
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      const durationStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+      let correctFirstCount = 0;
+      INITIAL_EVIDENCE_DATA.forEach(d => {
+        if (gameState.firstAttempts[d.id] === true) correctFirstCount++;
+      });
+
+      const durEl = document.getElementById('summary-duration');
+      const r1AttEl = document.getElementById('summary-r1-attempts');
+      const r1AccEl = document.getElementById('summary-r1-accuracy');
+      const r2AttEl = document.getElementById('summary-r2-attempts');
+
+      if (durEl) durEl.textContent = durationStr;
+      if (r1AttEl) r1AttEl.textContent = `${gameState.attemptCounts} kali`;
+      if (r1AccEl) r1AccEl.textContent = `${correctFirstCount}/6`;
+      if (r2AttEl) r2AttEl.textContent = `${gameState.room2Attempts} kali`;
+
+      sfx.success();
+      const modal = document.getElementById('modal-game-over');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function openBookModal() {
+      renderBookContent(gameState.activeBookTab);
+      setGamePaused(true);
+      const modal = document.getElementById('modal-book');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function renderBookContent(tab) {
+      gameState.activeBookTab = tab;
+      const listEl = document.getElementById('book-card-list');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+
+      const btnR1 = document.getElementById('btn-book-tab-r1');
+      const btnR2 = document.getElementById('btn-book-tab-r2');
+
+      if (tab === 'r1') {
+        if (btnR1) btnR1.className = "text-xs px-3 py-1.5 rounded-lg font-bold bg-amber-500 text-slate-950 transition-all";
+        if (btnR2) btnR2.className = "text-xs px-3 py-1.5 rounded-lg font-semibold bg-slate-800 text-slate-300 hover:text-white transition-all";
+
+        gameState.cards.forEach(card => {
+          const item = document.createElement('div');
+          let statusBadge = '';
+          if (card.status === 'world') {
+            statusBadge = `<span class="bg-slate-800 text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-700">Belum Dikumpul</span>`;
+          } else if (card.status === 'inventory') {
+            statusBadge = `<span class="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-500/30">Dalam Inventori</span>`;
+          } else if (card.status === 'placed') {
+            statusBadge = `<span class="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-500/30">Dipulihkan pada Panel ${card.placedPanel} ✓</span>`;
+          }
+
+          item.className = "bg-slate-950/70 border border-slate-800 p-4 rounded-2xl";
+          item.innerHTML = `
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="font-bold text-xs text-white">FAIL REKOD ${card.id}: ${card.title}</span>
+              ${statusBadge}
+            </div>
+            <p class="text-xs text-slate-300 italic mb-2">“${card.text}”</p>
+            ${card.status === 'placed' ? `<p class="text-[11px] text-emerald-400/90 bg-emerald-950/30 p-2 rounded-xl border border-emerald-800/40">${card.explanation}</p>` : ''}
+          `;
+          listEl.appendChild(item);
+        });
+      } else {
+        if (btnR2) btnR2.className = "text-xs px-3 py-1.5 rounded-lg font-bold bg-cyan-400 text-slate-950 transition-all";
+        if (btnR1) btnR1.className = "text-xs px-3 py-1.5 rounded-lg font-semibold bg-slate-800 text-slate-300 hover:text-white transition-all";
+
+        gameState.clues.forEach(clue => {
+          const item = document.createElement('div');
+          const isCollected = clue.collected;
+          item.className = "bg-slate-950/70 border border-slate-800 p-4 rounded-2xl";
+          item.innerHTML = `
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="font-bold text-xs text-cyan-300">${clue.title}</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded ${
+                isCollected ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'
+              }">${isCollected ? 'Telah Diperiksa' : 'Di Meja Bilik 2'}</span>
+            </div>
+            <p class="text-xs text-slate-300 italic">“${clue.text}”</p>
+          `;
+          listEl.appendChild(item);
+        });
+      }
+    }
+
+    function closeBookModal() {
+      const modal = document.getElementById('modal-book');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      setGamePaused(false);
+    }
+
+    function updateHUD() {
+      const restored = countRestoredCards();
+      const inventoryCount = gameState.cards.filter(c => c.status === 'inventory').length;
+
+      const roomTitleEl = document.getElementById('hud-room-title');
+      const progressTextEl = document.getElementById('hud-progress-text');
+      const progressBarEl = document.getElementById('hud-progress-bar');
+      const invBadge = document.getElementById('inventory-badge');
+
+      if (gameState.currentRoom === 1) {
+        if (roomTitleEl) roomTitleEl.textContent = "Bilik 1: Galeri Dua Detik";
+        if (progressTextEl) progressTextEl.textContent = `Bukti dipulihkan: ${restored}/6`;
+        if (progressBarEl) progressBarEl.style.width = `${(restored / 6) * 100}%`;
+      } else {
+        const panelsDone = (ROOM2_PANELS_DATA.A.completed ? 1 : 0) + (ROOM2_PANELS_DATA.B.completed ? 1 : 0);
+        if (roomTitleEl) roomTitleEl.textContent = "Bilik 2: Meja Peta Sejarah";
+        if (progressTextEl) progressTextEl.textContent = `Panel Peta: ${panelsDone}/2`;
+        if (progressBarEl) progressBarEl.style.width = `${(panelsDone / 2) * 100}%`;
+      }
+
+      if (invBadge) invBadge.textContent = inventoryCount;
+    }
+
+    function startTimer() {
+      gameState.startTime = Date.now();
+      if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+      gameState.timerInterval = setInterval(() => {
+        if (!gameState.started || gameState.completed) return;
+        const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
+        const timerEl = document.getElementById('hud-timer');
+        if (timerEl) {
+          timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+      }, 1000);
+    }
+
+    function resetGame() {
+      document.querySelectorAll('[id^="modal-"]').forEach(el => {
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+      });
+
+      gameState.started = true;
+      gameState.completed = false;
+      gameState.currentRoom = 1;
+      gameState.room1DoorOpen = false;
+      gameState.room2DoorOpen = false;
+      gameState.room2IntroShown = false;
+      gameState.closingChallengeCompleted = false;
+
+      gameState.questStep = 0;
+      gameState.hasTalkedToBird = false;
+      gameState.chestUnlocked = false;
+      gameState.chestLootCollected = false;
+      gameState.chestDials = { dial1: 1, dial2: 1, dial3: 1 };
+      gameState.upperBoardSolved = false;
+      gameState.timelineOrder = ["T3", "T1", "T4", "T2"];
+
+      if (chestLidGroup) chestLidGroup.rotation.x = 0;
+      if (chestLootMesh) chestLootMesh.visible = true;
+      if (beaconBeamMesh) beaconBeamMesh.visible = false;
+
+      gameState.attemptCounts = 0;
+      gameState.hintsUsed = 0;
+      gameState.firstAttempts = {};
+      gameState.placedCards = {};
+      gameState.cards.forEach(card => {
+        card.status = 'world';
+        card.placedPanel = null;
+        if (card.worldMesh) card.worldMesh.visible = true;
+      });
+
+      gameState.room2Attempts = 0;
+      gameState.room2FirstAttempts = { A: undefined, B: undefined, closing: undefined };
+      gameState.panelSelections = { A: [], B: [] };
+      ROOM2_PANELS_DATA.A.completed = false;
+      ROOM2_PANELS_DATA.B.completed = false;
+      gameState.clues.forEach(clue => clue.collected = false);
+
+      if (exitDoorGroup && exitDoorGroup.doorSlab) exitDoorGroup.doorSlab.position.y = 2.0;
+      if (exitDoorGroup && colliders.indexOf(exitDoorGroup.collider) === -1) {
+        colliders.push(exitDoorGroup.collider);
+      }
+      updateDoorIndicators();
+
+      if (room2DoorGroup && room2DoorGroup.doorSlab) room2DoorGroup.doorSlab.position.y = 2.0;
+      if (room2DoorGroup && colliders.indexOf(room2DoorGroup.collider) === -1) {
+        colliders.push(room2DoorGroup.collider);
+      }
+      updateRoom2DoorIndicators();
+
+      player.pos.set(0, 0, 4);
+      player.rotY = Math.PI;
+      if (playerGroup) {
+        playerGroup.position.copy(player.pos);
+        playerGroup.rotation.y = Math.PI;
+      }
+      camState.yaw = 0;
+      camState.pitch = 0.28;
+
+      updateHUD();
+      updateObjectiveBanner();
+      startTimer();
+      setGamePaused(false);
+    }
+
+    function setupUIEvents() {
+      safeAddListener('btn-start-game', 'click', () => {
+        sfx.init();
+        const startModal = document.getElementById('modal-start');
+        if (startModal) {
+          startModal.classList.add('hidden');
+          startModal.classList.remove('flex');
+        }
+        gameState.started = true;
+        setGamePaused(false);
+        startTimer();
+
+        const ctrlModal = document.getElementById('modal-controls');
+        if (ctrlModal) {
+          ctrlModal.classList.remove('hidden');
+          ctrlModal.classList.add('flex');
+          setGamePaused(true);
+        }
+      });
+
+      safeAddListener('btn-open-controls', 'click', () => {
+        const modal = document.getElementById('modal-controls');
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          setGamePaused(true);
+        }
+      });
+
+      safeAddListener('btn-close-controls', 'click', () => {
+        const modal = document.getElementById('modal-controls');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          setGamePaused(false);
+        }
+      });
+
+      safeAddListener('btn-ack-controls', 'click', () => {
+        const modal = document.getElementById('modal-controls');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          setGamePaused(false);
+        }
+      });
+
+      safeAddListener('btn-open-book', 'click', openBookModal);
+      safeAddListener('btn-close-book', 'click', closeBookModal);
+      safeAddListener('btn-close-book-alt', 'click', closeBookModal);
+      safeAddListener('btn-book-tab-r1', 'click', () => renderBookContent('r1'));
+      safeAddListener('btn-book-tab-r2', 'click', () => renderBookContent('r2'));
+
+      safeAddListener('btn-close-inspect', 'click', closeInspectCardModal);
+      safeAddListener('btn-save-evidence', 'click', saveActiveCardToInventory);
+
+      safeAddListener('btn-close-clue', 'click', closeInspectClueModal);
+      safeAddListener('btn-ack-clue', 'click', closeInspectClueModal);
+
+      safeAddListener('btn-ack-room1-door', 'click', () => {
+        const modal = document.getElementById('modal-room1-complete');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+        setGamePaused(false);
+      });
+
+      safeAddListener('btn-close-map', 'click', closeMapTableModal);
+      safeAddListener('btn-close-map-alt', 'click', closeMapTableModal);
+      safeAddListener('btn-tab-panel-a', 'click', () => renderMapPanel('A'));
+      safeAddListener('btn-tab-panel-b', 'click', () => renderMapPanel('B'));
+      safeAddListener('btn-submit-map-panel', 'click', submitMapPanelSelection);
+
+      safeAddListener('btn-submit-closing-challenge', 'click', submitClosingChallenge);
+
+      safeAddListener('btn-close-panel', 'click', closePanelModal);
+      safeAddListener('btn-close-panel-alt', 'click', closePanelModal);
+      safeAddListener('btn-close-feedback', 'click', closeFeedbackModal);
+
+      safeAddListener('btn-close-bird', 'click', closeBirdDialogModal);
+      safeAddListener('btn-ack-bird', 'click', closeBirdDialogModal);
+
+      safeAddListener('btn-bird-opt-mission', 'click', () => {
+        if (!gameState.chestUnlocked) {
+          setBirdDialogContent("“Misi kamu adalah mencari Peti Arkib di seberang sana dan menyelaraskan 3 kunci dial berdasarkan Kemerdekaan 1957!”");
+        } else if (!gameState.chestLootCollected) {
+          setBirdDialogContent("“Peti sudah terbuka! Dekati peti dan ambil kepingan arkib bergambar yang berkilauan di dalamnya.”");
+        } else if (!gameState.upperBoardSolved) {
+          setBirdDialogContent("“Bawa kepingan arkib tersebut menaiki tangga kayu ke mezanin atas dan susun garis masa di papan pameran!”");
+        } else {
+          setBirdDialogContent("“Semua mekanisme telah dipulihkan! Pintu keluar kini terbuka luas untuk kamu melangkah.”");
+        }
+      });
+
+      safeAddListener('btn-bird-opt-hint', 'click', () => {
+        if (!gameState.chestUnlocked) {
+          setBirdDialogContent("“Petunjuk Dial: Ingat kembali bahawa pada 1957, Tanah Melayu mencapai kemerdekaan dengan 11 negeri di Semenanjung sebelum gabungan Malaysia dibentuk.”");
+        } else if (!gameState.upperBoardSolved) {
+          setBirdDialogContent("“Petunjuk Papan: Susun mengikut tahun — mulakan dengan peristiwa Kemerdekaan 1957, barulah diikuti oleh gabungan bersama Sabah, Sarawak dan Singapura pada 1963.”");
+        } else {
+          setBirdDialogContent("“Tiada lagi teka-teki, jalan keluar sedang menanti kamu!”");
+        }
+      });
+
+      safeAddListener('btn-bird-opt-status', 'click', () => {
+        const chestSt = gameState.chestUnlocked ? "Dibuka ✓" : "Masih Terkunci";
+        const lootSt = gameState.chestLootCollected ? "Telah Diambil ✓" : "Belum";
+        const boardSt = gameState.upperBoardSolved ? "Selesai ✓" : "Belum";
+        setBirdDialogContent(`“Status Misi: Peti Arkib (${chestSt}) | Kepingan Bergambar (${lootSt}) | Papan Mezanin (${boardSt}).”`);
+      });
+
+      // Pendengar acara dial peti arkib
+      safeAddListener('btn-close-chest-puzzle', 'click', closeChestPuzzleModal);
+      safeAddListener('btn-dial-prev-1', 'click', () => cycleDial('dial1', -1));
+      safeAddListener('btn-dial-next-1', 'click', () => cycleDial('dial1', 1));
+      safeAddListener('btn-dial-prev-2', 'click', () => cycleDial('dial2', -1));
+      safeAddListener('btn-dial-next-2', 'click', () => cycleDial('dial2', 1));
+      safeAddListener('btn-dial-prev-3', 'click', () => cycleDial('dial3', -1));
+      safeAddListener('btn-dial-next-3', 'click', () => cycleDial('dial3', 1));
+      safeAddListener('btn-check-chest-puzzle', 'click', checkChestPuzzle);
+
+      // Pendengar acara kutip rampasan peti
+      safeAddListener('btn-close-chest-loot', 'click', closeChestLootModal);
+      safeAddListener('btn-collect-chest-loot', 'click', collectChestLoot);
+
+      // Pendengar acara papan mezanin atas
+      safeAddListener('btn-close-upper-board', 'click', closeUpperBoardModal);
+      safeAddListener('btn-close-upper-board-alt', 'click', closeUpperBoardModal);
+      safeAddListener('btn-submit-upper-board', 'click', checkUpperBoard);
+
+      safeAddListener('btn-open-restart', 'click', () => {
+        const modal = document.getElementById('modal-confirm-restart');
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          setGamePaused(true);
+        }
+      });
+
+      safeAddListener('btn-cancel-restart', 'click', () => {
+        const modal = document.getElementById('modal-confirm-restart');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          setGamePaused(false);
+        }
+      });
+
+      safeAddListener('btn-do-restart', 'click', resetGame);
+      safeAddListener('btn-replay', 'click', resetGame);
+
+      safeAddListener('btn-toggle-audio', 'click', () => {
+        sfx.enabled = !sfx.enabled;
+        const iconOn = document.getElementById('audio-icon-on');
+        const iconOff = document.getElementById('audio-icon-off');
+        if (sfx.enabled) {
+          sfx.init();
+          if (iconOn) iconOn.classList.remove('hidden');
+          if (iconOff) iconOff.classList.add('hidden');
+        } else {
+          if (iconOn) iconOn.classList.add('hidden');
+          if (iconOff) iconOff.classList.remove('hidden');
+        }
+      });
+    }
+
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = Math.min(clock.getDelta(), 0.1);
+
+      if (guardianBirdGroup) {
+        const time = Date.now() * 0.003;
+        // Pusing kepala sedikit memandang sekeliling
+        if (guardianBirdGroup.head) {
+          guardianBirdGroup.head.rotation.y = Math.sin(time * 0.8) * 0.45;
+        }
+        // Sayap berkepak secara berkala
+        const flapCycle = Math.sin(time * 6);
+        if (birdWingLeft && birdWingRight) {
+          birdWingLeft.rotation.z = Math.max(0, flapCycle) * 0.5;
+          birdWingRight.rotation.z = -Math.max(0, flapCycle) * 0.5;
+        }
+      }
+
+      // Animasi kepingan bercahaya di dalam peti
+      if (chestLootMesh && chestLootMesh.visible) {
+        chestLootMesh.rotation.y += delta * 1.2;
+      }
+
+      // Animasi pancaran tiang cahaya tingkat atas
+      if (beaconBeamMesh && beaconBeamMesh.visible) {
+        beaconBeamMesh.rotation.y += delta * 2;
+        const pulse = 0.6 + Math.sin(Date.now() * 0.005) * 0.2;
+        beaconBeamMesh.material.opacity = pulse;
+      }
+
+      if (gameState.cards) {
+        const time = Date.now() * 0.0025;
+        gameState.cards.forEach(card => {
+          if (card.status === 'world' && card.worldMesh) {
+            card.worldMesh.rotation.y += delta * 1.5;
+            card.worldMesh.position.y = 1.45 + Math.sin(time + card.pos.x) * 0.08;
+          }
+        });
+      }
+
+      if (gameState.clues) {
+        const time = Date.now() * 0.0025;
+        gameState.clues.forEach(clue => {
+          if (clue.worldMesh) {
+            clue.worldMesh.rotation.y += delta * 1.5;
+            clue.worldMesh.position.y = 1.45 + Math.sin(time + clue.pos.x) * 0.08;
+          }
+        });
+      }
+
+      updatePlayerMovement(delta);
+
+      if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+      }
+    }
+
+    function onWindowResize() {
+      if (!camera || !renderer) return;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = function () {
+      try {
+        init3D();
+        setupControls();
+        setupUIEvents();
+        updateHUD();
+        updateObjectiveBanner();
+        animate();
+      } catch (err) {
+        console.error("Ralat permulaan permainan:", err);
+      }
+    };
+  </script>
+</body>
+</html>
